@@ -1,0 +1,20 @@
+[
+  {
+    "Code": "HSBA",
+    "Name": "HSBC Holdings plc",
+    "Country": "UK",
+    "Exchange": "LSE",
+    "Currency": "GBP",
+    "Type": "Common Stock",
+    "Isin": "GB0005405286"
+  },
+  {
+    "Code": "ULVR",
+    "Name": "Unilever PLC",
+    "Country": "UK",
+    "Exchange": "LSE",
+    "Currency": "GBP",
+    "Type": "Common Stock",
+    "Isin": "GB00B10RZP78"
+  }
+]

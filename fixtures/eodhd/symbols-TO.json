@@ -1,0 +1,20 @@
+[
+  {
+    "Code": "SHOP",
+    "Name": "Shopify Inc.",
+    "Country": "Canada",
+    "Exchange": "TSX",
+    "Currency": "CAD",
+    "Type": "Common Stock",
+    "Isin": "CA82509L1076"
+  },
+  {
+    "Code": "RY",
+    "Name": "Royal Bank of Canada",
+    "Country": "Canada",
+    "Exchange": "TSX",
+    "Currency": "CAD",
+    "Type": "Common Stock",
+    "Isin": "CA7800871021"
+  }
+]

@@ -85,7 +85,11 @@ export class BasicMatchEngine implements MatchEngine {
       }
     }
 
-    return best;
+    if (best && best.score > 0) {
+      return best;
+    }
+
+    return undefined;
   }
 
   private computeNameSimilarity(a: string, b: string): number {

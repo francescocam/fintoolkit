@@ -19,6 +19,23 @@ export interface EodhdProviderConfig {
   symbolTtlMs?: number;
 }
 
+interface RawExchangeSummary {
+  Code: string;
+  Name: string;
+  OperatingMIC?: string;
+  Country?: string;
+  Currency?: string;
+}
+
+interface RawSymbolRecord {
+  Code: string;
+  Name: string;
+  Exchange: string;
+  Country?: string;
+  Currency?: string;
+  Isin?: string | null;
+}
+
 interface EodhdFundamentalsResponse {
   General?: {
     Code?: string;
@@ -57,31 +74,35 @@ export class EodhdProvider implements FundamentalsProvider {
       return cached;
     }
 
-    const payload = await this.config.client.getJson<ExchangeSummary[]>(
+    const payload = await this.config.client.getJson<RawExchangeSummary[]>(
       `${this.baseUrl}/exchanges-list`,
       this.authParams(),
     );
 
-    return this.persist(descriptor, payload);
+    const normalizedExchanges = payload.map((record) => this.normalizeExchange(record));
+
+    return this.persist(descriptor, normalizedExchanges);
   }
 
   async getSymbols(exchangeCode: string): Promise<CachedPayload<SymbolRecord[]>> {
-    const normalized = exchangeCode.trim().toUpperCase();
-    const descriptor = this.createDescriptor('exchange-symbols', normalized, this.config.symbolTtlMs);
+    const normalizedCode = exchangeCode.trim().toUpperCase();
+    const descriptor = this.createDescriptor('exchange-symbols', normalizedCode, this.config.symbolTtlMs);
     const cached = await this.readCache<SymbolRecord[]>(descriptor);
     if (cached) {
       return cached;
     }
 
-    const payload = await this.config.client.getJson<SymbolRecord[]>(
-      `${this.baseUrl}/exchange-symbol-list/${normalized}`,
+    const payload = await this.config.client.getJson<RawSymbolRecord[]>(
+      `${this.baseUrl}/exchange-symbol-list/${normalizedCode}`,
       {
         ...this.authParams(),
         type: 'common_stock',
       },
     );
 
-    return this.persist(descriptor, payload);
+    const normalizedSymbols = payload.map((record) => this.normalizeSymbol(record));
+
+    return this.persist(descriptor, normalizedSymbols);
   }
 
   async getFundamentals(stockCode: string, exchangeCode: string): Promise<FundamentalsSnapshot> {
@@ -199,5 +220,26 @@ export class EodhdProvider implements FundamentalsProvider {
     }
     const parsed = typeof value === 'number' ? value : Number(value);
     return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  private normalizeExchange(record: RawExchangeSummary): ExchangeSummary {
+    return {
+      code: record.Code,
+      name: record.Name,
+      operatingMic: record.OperatingMIC ?? '',
+      country: record.Country ?? '',
+      currency: record.Currency ?? '',
+    };
+  }
+
+  private normalizeSymbol(record: RawSymbolRecord): SymbolRecord {
+    return {
+      code: record.Code,
+      name: record.Name,
+      exchange: record.Exchange,
+      country: record.Country ?? '',
+      currency: record.Currency ?? '',
+      isin: record.Isin ?? null,
+    };
   }
 }

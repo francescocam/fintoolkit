@@ -127,3 +127,8 @@ export interface WizardSession {
   matches?: MatchCandidate[];
   screenerRows?: FundamentalsSnapshot[];
 }
+
+export interface WizardSessionStore {
+  load(id: string): Promise<WizardSession | null>;
+  save(session: WizardSession): Promise<void>;
+}

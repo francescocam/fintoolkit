@@ -1,0 +1,29 @@
+[
+  {
+    "Code": "MSFT",
+    "Name": "Microsoft Corp.",
+    "Country": "USA",
+    "Exchange": "NASDAQ",
+    "Currency": "USD",
+    "Type": "Common Stock",
+    "Isin": "US5949181045"
+  },
+  {
+    "Code": "AMZN",
+    "Name": "Amazon.com Inc.",
+    "Country": "USA",
+    "Exchange": "NASDAQ",
+    "Currency": "USD",
+    "Type": "Common Stock",
+    "Isin": "US0231351067"
+  },
+  {
+    "Code": "AAPL",
+    "Name": "Apple Inc.",
+    "Country": "USA",
+    "Exchange": "NASDAQ",
+    "Currency": "USD",
+    "Type": "Common Stock",
+    "Isin": "US0378331005"
+  }
+]
