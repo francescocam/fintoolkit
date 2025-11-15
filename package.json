@@ -2,12 +2,12 @@
   "name": "fintoolkit",
   "private": true,
   "version": "0.1.0",
-  "type": "module",
   "scripts": {
     "dev": "vite --config apps/web/vite.config.ts",
     "build": "vite build --config apps/web/vite.config.ts",
     "preview": "vite preview --config apps/web/vite.config.ts",
-    "typecheck": "tsc -p tsconfig.json && tsc -p apps/web/tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json && tsc -p apps/web/tsconfig.json",
+    "wizard:server": "ts-node server/wizardServer.ts"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",

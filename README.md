@@ -17,13 +17,23 @@ npm install
 
 > If you are in an offline environment, you can still inspect the code. Run the command later when network access is available.
 
+### Start the wizard API server
+
+The React app expects a local API that orchestrates the wizard flow. Run this in a separate terminal:
+
+```bash
+npm run wizard:server
+```
+
+It exposes `http://localhost:8787/api/session/...` endpoints backed by the orchestrator plus `http://localhost:8787/api/settings` for reading/writing user preferences. Settings are persisted to `.config/settings.json` (gitignored). Use the UI settings page (or edit the JSON directly) to store your EODHD API key—live exchange/symbol calls pull from that file, falling back to the `EODHD_API_TOKEN` env var or `demo` if nothing is configured.
+
 ### Run the UI
 
 ```bash
 npm run dev
 ```
 
-This starts the Vite dev server (defaults to http://localhost:5173). The wizard view is mounted at `/wizard`, and settings at `/settings`.
+This starts the Vite dev server (defaults to http://localhost:5173). The wizard view is mounted at `/wizard`, and settings at `/settings`. Keep the API server running so the UI can fetch live data.
 
 ### Build for production
 

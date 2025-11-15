@@ -44,6 +44,11 @@ nav {
   gap: 1rem;
 }
 
+.button-group {
+  display: flex;
+  gap: 0.75rem;
+}
+
 .nav-link {
   text-decoration: none;
   color: #475569;
@@ -80,6 +85,21 @@ main {
 .panel h2,
 .panel h3 {
   margin: 0 0 0.25rem;
+}
+
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+}
+
+.alert.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.alert.info {
+  background: #dbf4ff;
+  color: #0f172a;
 }
 
 .app-shell button,
@@ -165,6 +185,31 @@ main {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.summary-card {
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.summary-label {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.summary-value {
+  margin: 0.2rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .table-wrapper {

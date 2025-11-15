@@ -1,3 +1,4 @@
 .wizard-sessions/
+.config/
 node_modules/
 package-lock.json

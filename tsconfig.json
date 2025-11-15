@@ -12,5 +12,5 @@
     "forceConsistentCasingInFileNames": true,
     "typeRoots": ["./types"]
   },
-  "include": ["src", "scripts", "fixtures"]
+  "include": ["src", "scripts", "fixtures", "server"]
 }

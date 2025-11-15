@@ -1,14 +1,39 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
+import { useSettings } from '../hooks/useSettings';
 
 const SettingsPage = () => {
+  const { settings, loading, saving, message, error, save } = useSettings();
   const [apiKey, setApiKey] = useState('');
-  const [message, setMessage] = useState('');
+  const [defaultProvider, setDefaultProvider] = useState('eodhd');
+  const [cachePreference, setCachePreference] = useState<'ask' | 'reuse' | 'ignore'>('ask');
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    // Placeholder persistence
-    setMessage('Preferences saved locally (wire to secure storage later)');
+    const providerKeys = apiKey
+      ? [
+          ...settings.providerKeys.filter((key) => key.provider !== 'eodhd'),
+          { provider: 'eodhd', apiKey, updatedAt: new Date().toISOString() },
+        ]
+      : settings.providerKeys.filter((key) => key.provider !== 'eodhd');
+
+    const reuseCacheByDefault =
+      cachePreference === 'reuse' ? true : cachePreference === 'ignore' ? false : settings.preferences.reuseCacheByDefault;
+
+    void save({
+      providerKeys,
+      preferences: {
+        defaultProvider,
+        reuseCacheByDefault,
+      },
+    });
   };
+
+  useEffect(() => {
+    const eodKey = settings.providerKeys.find((key) => key.provider === 'eodhd');
+    setApiKey(eodKey?.apiKey ?? '');
+    setDefaultProvider(settings.preferences.defaultProvider);
+    setCachePreference(settings.preferences.reuseCacheByDefault ? 'reuse' : 'ask');
+  }, [settings]);
 
   return (
     <section className="panel">
@@ -16,6 +41,8 @@ const SettingsPage = () => {
         <h2>Provider Settings</h2>
         <p>Store your EODHD API key and choose defaults for the screening workflow.</p>
       </header>
+      {loading && <p className="alert info">Loading settings…</p>}
+      {error && <p className="alert error">{error}</p>}
       <form className="form-grid" onSubmit={handleSubmit}>
         <label htmlFor="apiKey">EODHD API Key</label>
         <input
@@ -26,21 +53,22 @@ const SettingsPage = () => {
           onChange={(event) => setApiKey(event.target.value)}
         />
         <label htmlFor="defaultProvider">Default Provider</label>
-        <select id="defaultProvider" defaultValue="eodhd">
-          <option value="eodhd">EODHD (current)</option>
-          <option value="future" disabled>
-            More providers coming soon
-          </option>
+        <select id="defaultProvider" value={defaultProvider} onChange={(event) => setDefaultProvider(event.target.value)}>
+          <option value="eodhd">EODHD</option>
         </select>
         <label htmlFor="cachePreference">Cache Preference</label>
-        <select id="cachePreference" defaultValue="ask">
+        <select
+          id="cachePreference"
+          value={cachePreference}
+          onChange={(event) => setCachePreference(event.target.value as typeof cachePreference)}
+        >
           <option value="ask">Ask every time</option>
           <option value="reuse">Always reuse cached data</option>
           <option value="ignore">Always fetch fresh data</option>
         </select>
         <div className="form-actions">
-          <button type="submit" disabled={!apiKey}>
-            Save preferences
+          <button type="submit" disabled={saving}>
+            {saving ? 'Saving…' : 'Save preferences'}
           </button>
         </div>
         {message && <p className="form-message">{message}</p>}

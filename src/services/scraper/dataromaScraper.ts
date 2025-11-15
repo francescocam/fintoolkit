@@ -40,8 +40,7 @@ export class DataromaScraperService implements DataromaScraper {
       }
     }
 
-    const html = await this.config.client.getText(this.baseUrl, this.buildQuery(opts));
-    const entries = this.parseTable(html);
+    const entries = await this.fetchAllPages(opts);
     const cachedPayload = entries.length ? await this.persist(descriptor, entries) : undefined;
 
     return {
@@ -65,11 +64,15 @@ export class DataromaScraperService implements DataromaScraper {
     return `grand-portfolio:${min}`;
   }
 
-  private buildQuery(opts: ScrapeOptions): QueryParams | undefined {
+  private buildQuery(opts: ScrapeOptions, page?: number): QueryParams | undefined {
+    const params: QueryParams = {};
     if (opts.minPercent !== undefined && opts.minPercent > 0) {
-      return { pct: opts.minPercent };
+      params.pct = opts.minPercent;
     }
-    return undefined;
+    if (page && page > 1) {
+      params.L = page;
+    }
+    return Object.keys(params).length ? params : undefined;
   }
 
   private async persist(
@@ -87,7 +90,7 @@ export class DataromaScraperService implements DataromaScraper {
     };
   }
 
-  private parseTable(html: string): DataromaEntry[] {
+  private parsePage(html: string): { entries: DataromaEntry[]; totalPages: number } {
     const tbodyMatch = html.match(/<tbody>([\s\S]*?)<\/tbody>/i);
     if (!tbodyMatch) {
       throw new Error('Unable to locate table body in Dataroma response.');
@@ -113,7 +116,43 @@ export class DataromaScraperService implements DataromaScraper {
       });
     }
 
-    return entries;
+    const totalPages = this.extractTotalPages(html);
+
+    return { entries, totalPages };
+  }
+
+  private extractTotalPages(html: string): number {
+    const footerMatch = html.match(/<div\s+id="pages">([\s\S]*?)<\/div>/i);
+    if (!footerMatch) {
+      return 1;
+    }
+
+    const linkRegex = /portfolio\.php\?[^"]*L=(\d+)/gi;
+    let maxPage = 1;
+    let match: RegExpExecArray | null;
+
+    while ((match = linkRegex.exec(footerMatch[1])) !== null) {
+      const pageNumber = Number(match[1]);
+      if (Number.isFinite(pageNumber)) {
+        maxPage = Math.max(maxPage, pageNumber);
+      }
+    }
+
+    return maxPage;
+  }
+
+  private async fetchAllPages(opts: ScrapeOptions): Promise<DataromaEntry[]> {
+    const firstHtml = await this.config.client.getText(this.baseUrl, this.buildQuery(opts));
+    const { entries: firstEntries, totalPages } = this.parsePage(firstHtml);
+    const allEntries = [...firstEntries];
+
+    for (let page = 2; page <= totalPages; page++) {
+      const html = await this.config.client.getText(this.baseUrl, this.buildQuery(opts, page));
+      const { entries } = this.parsePage(html);
+      allEntries.push(...entries);
+    }
+
+    return allEntries;
   }
 
   private extractCellText(rowHtml: string, className: string): string | undefined {
