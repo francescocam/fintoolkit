@@ -1,9 +1,8 @@
-import { useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
 import { useDataromaScreenerSession } from '../hooks/useDataromaScreenerSession';
 import { useCachePreference } from '../hooks/useCachePreference';
 
-const DataromaScreenerPage = () => {
-  const navigate = useNavigate();
+const DataromaUniversePage = () => {
   const { session, loading, starting, error, startNewSession } = useDataromaScreenerSession();
   const {
     useCache,
@@ -11,20 +10,27 @@ const DataromaScreenerPage = () => {
     saving: prefSaving,
     error: prefError,
     setUseCache,
-  } = useCachePreference('dataromaScrape');
+  } = useCachePreference('stockUniverse');
 
-  const dataromaRows = session?.dataroma?.entries ?? [];
+  const universeRows = useMemo(() => {
+    if (!session?.providerUniverse) {
+      return [];
+    }
+    return Object.values(session.providerUniverse.symbols)
+      .flatMap((payload) => payload.payload.map((symbol) => ({ code: symbol.code, name: symbol.name })))
+      .slice(0, 50);
+  }, [session]);
 
   return (
     <section className="dataroma-screener-page">
       <header className="dataroma-screener-hero">
         <h2>Dataroma Screener</h2>
-        <p>Step 1 - get data from Dataroma</p>
+        <p>Step 2 - get stock universe from EODHD</p>
         <div className="dataroma-screener-actions">
           <button
             type="button"
             className="pill-button"
-            onClick={() => startNewSession({ cache: { dataromaScrape: useCache } })}
+            onClick={() => startNewSession({ cache: { stockUniverse: useCache } })}
             disabled={starting || prefLoading}
           >
             {starting ? 'Fetching...' : 'Get Data'}
@@ -35,35 +41,35 @@ const DataromaScreenerPage = () => {
             onClick={() => setUseCache(!useCache)}
             disabled={prefSaving || prefLoading}
           >
-            <span className="toggle-pill-label">Keep previous scrape</span>
+            <span className="toggle-pill-label">Keep stock universe</span>
             <span className="toggle-indicator" aria-hidden="true" />
           </button>
         </div>
       </header>
       {(error || prefError) && <p className="alert error">{error ?? prefError}</p>}
       {loading ? (
-        <p className="alert info">Loading Dataroma Screener session...</p>
+        <p className="alert info">Loading EODHD universe...</p>
       ) : (
         <div className="dataroma-screener-table">
           <table>
             <thead>
               <tr>
-                <th>Dataroma Stock Symbol</th>
-                <th>Dataroma Stock Name</th>
+                <th>EODHD Stock Code</th>
+                <th>EODHD Stock Name</th>
               </tr>
             </thead>
             <tbody>
-              {dataromaRows.length === 0 ? (
+              {universeRows.length === 0 ? (
                 <tr>
                   <td colSpan={2} className="table-empty">
-                    Run the scraper to populate this table.
+                    Fetch the stock universe to populate this table.
                   </td>
                 </tr>
               ) : (
-                dataromaRows.map((row) => (
-                  <tr key={`${row.symbol}-${row.stock}`}>
-                    <td>{row.symbol}</td>
-                    <td>{row.stock}</td>
+                universeRows.map((row) => (
+                  <tr key={`${row.code}-${row.name}`}>
+                    <td>{row.code}</td>
+                    <td>{row.name}</td>
                   </tr>
                 ))
               )}
@@ -72,7 +78,7 @@ const DataromaScreenerPage = () => {
         </div>
       )}
       <div className="dataroma-screener-next">
-        <button type="button" className="pill-button" onClick={() => navigate('/dataroma-screener/universe')}>
+        <button type="button" className="pill-button" disabled>
           Next step
         </button>
       </div>
@@ -80,4 +86,4 @@ const DataromaScreenerPage = () => {
   );
 };
 
-export default DataromaScreenerPage;
+export default DataromaUniversePage;
