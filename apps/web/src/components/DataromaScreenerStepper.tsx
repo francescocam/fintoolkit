@@ -1,10 +1,10 @@
-interface WizardStep {
+interface DataromaScreenerStep {
   key: string;
   label: string;
   status: 'complete' | 'running' | 'pending';
 }
 
-const statusClass = (status: WizardStep['status']) => {
+const statusClass = (status: DataromaScreenerStep['status']) => {
   switch (status) {
     case 'complete':
       return 'step-pill complete';
@@ -15,13 +15,13 @@ const statusClass = (status: WizardStep['status']) => {
   }
 };
 
-interface WizardStepperProps {
-  steps: WizardStep[];
+interface DataromaScreenerStepperProps {
+  steps: DataromaScreenerStep[];
 }
 
-const WizardStepper = ({ steps }: WizardStepperProps) => {
+const DataromaScreenerStepper = ({ steps }: DataromaScreenerStepperProps) => {
   return (
-    <ol className="wizard-stepper">
+    <ol className="dataroma-screener-stepper">
       {steps.map((step, index) => (
         <li key={step.key}>
           <div className={statusClass(step.status)}>
@@ -34,4 +34,4 @@ const WizardStepper = ({ steps }: WizardStepperProps) => {
   );
 };
 
-export default WizardStepper;
+export default DataromaScreenerStepper;

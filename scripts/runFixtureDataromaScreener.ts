@@ -2,10 +2,10 @@ import * as path from 'path';
 import { DataromaScraperService } from '../src/services/scraper/dataromaScraper';
 import { LocalFixtureHttpClient } from '../src/providers/localFixtureHttpClient';
 import { InMemoryCacheStore } from '../src/services/cache/inMemoryCacheStore';
-import { WizardOrchestrator } from '../src/services/wizard/wizardOrchestrator';
+import { DataromaScreenerOrchestrator } from '../src/services/dataromaScreener/dataromaScreenerOrchestrator';
 import { EodhdProvider } from '../src/providers/eodhdProvider';
 import { BasicMatchEngine } from '../src/services/matching/basicMatchEngine';
-import { FileSystemSessionStore } from '../src/services/wizard/fileSessionStore';
+import { DataromaScreenerFileSessionStore } from '../src/services/dataromaScreener/dataromaScreenerSessionStore';
 
 async function main(): Promise<void> {
   const fixturesRoot = path.join(__dirname, '..', 'fixtures');
@@ -36,26 +36,31 @@ async function main(): Promise<void> {
     cache: new InMemoryCacheStore(),
   });
 
-  const sessionStore = new FileSystemSessionStore({
-    baseDir: path.join(__dirname, '..', '.wizard-sessions'),
+  const sessionStore = new DataromaScreenerFileSessionStore({
+    baseDir: path.join(__dirname, '..', '.dataroma-screener-sessions'),
   });
 
   const matchEngine = new BasicMatchEngine();
 
-  const wizard = new WizardOrchestrator({
+  const screener = new DataromaScreenerOrchestrator({
     scraper,
     provider,
     matchEngine,
     maxSymbolExchanges: 2,
     store: sessionStore,
   });
-  const session = await wizard.startSession({ useCache: false });
+  const session = await screener.startSession({
+    cache: {
+      dataromaScrape: false,
+      stockUniverse: false,
+    },
+  });
 
   const scrapeStep = session.steps.find((step) => step.step === 'scrape');
   const universeStep = session.steps.find((step) => step.step === 'universe');
   const matchStep = session.steps.find((step) => step.step === 'match');
 
-  console.log('Wizard scrape step completed:');
+  console.log('Dataroma Screener scrape step completed:');
   console.log(JSON.stringify(scrapeStep, null, 2));
   console.log(`Sample entries (${session.dataroma?.entries.length ?? 0} total):`);
   console.log(session.dataroma?.entries.slice(0, 5));
@@ -72,11 +77,11 @@ async function main(): Promise<void> {
   const savedPath = path.join(sessionStore.getBaseDir(), `${session.id}.json`);
   console.log(`\nSession persisted to: ${savedPath}`);
 
-  const reloaded = await wizard.loadSession(session.id);
+  const reloaded = await screener.loadSession(session.id);
   console.log('Reloaded session matches count:', reloaded?.matches?.length ?? 0);
 }
 
 main().catch((error) => {
-  console.error('Fixture wizard run failed:', error);
+  console.error('Fixture Dataroma Screener run failed:', error);
   process.exitCode = 1;
 });

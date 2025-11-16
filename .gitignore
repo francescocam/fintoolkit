@@ -1,4 +1,5 @@
-.wizard-sessions/
+.dataroma-screener-sessions/
 .config/
 node_modules/
 package-lock.json
+.wizard-sessions/

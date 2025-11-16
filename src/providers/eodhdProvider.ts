@@ -5,6 +5,7 @@ import {
   ExchangeSummary,
   FundamentalsProvider,
   FundamentalsSnapshot,
+  ProviderCacheOptions,
   ProviderId,
   SymbolRecord,
 } from '../domain/contracts';
@@ -67,9 +68,9 @@ export class EodhdProvider implements FundamentalsProvider {
     this.baseUrl = config.baseUrl ?? 'https://eodhd.com/api';
   }
 
-  async getExchanges(): Promise<CachedPayload<ExchangeSummary[]>> {
+  async getExchanges(options?: ProviderCacheOptions): Promise<CachedPayload<ExchangeSummary[]>> {
     const descriptor = this.createDescriptor('exchange-list', 'all', this.config.exchangeTtlMs);
-    const cached = await this.readCache<ExchangeSummary[]>(descriptor);
+    const cached = await this.readCache<ExchangeSummary[]>(descriptor, options);
     if (cached) {
       return cached;
     }
@@ -84,10 +85,10 @@ export class EodhdProvider implements FundamentalsProvider {
     return this.persist(descriptor, normalizedExchanges);
   }
 
-  async getSymbols(exchangeCode: string): Promise<CachedPayload<SymbolRecord[]>> {
+  async getSymbols(exchangeCode: string, options?: ProviderCacheOptions): Promise<CachedPayload<SymbolRecord[]>> {
     const normalizedCode = exchangeCode.trim().toUpperCase();
     const descriptor = this.createDescriptor('exchange-symbols', normalizedCode, this.config.symbolTtlMs);
-    const cached = await this.readCache<SymbolRecord[]>(descriptor);
+    const cached = await this.readCache<SymbolRecord[]>(descriptor, options);
     if (cached) {
       return cached;
     }
@@ -105,7 +106,11 @@ export class EodhdProvider implements FundamentalsProvider {
     return this.persist(descriptor, normalizedSymbols);
   }
 
-  async getFundamentals(stockCode: string, exchangeCode: string): Promise<FundamentalsSnapshot> {
+  async getFundamentals(
+    stockCode: string,
+    exchangeCode: string,
+    options?: ProviderCacheOptions,
+  ): Promise<FundamentalsSnapshot> {
     const symbol = stockCode.trim().toUpperCase();
     const exchange = exchangeCode.trim().toUpperCase();
     const response = await this.config.client.getJson<EodhdFundamentalsResponse>(
@@ -132,8 +137,11 @@ export class EodhdProvider implements FundamentalsProvider {
     };
   }
 
-  private async readCache<T>(descriptor: CacheDescriptor): Promise<CachedPayload<T> | null> {
-    if (!this.config.cache) {
+  private async readCache<T>(
+    descriptor: CacheDescriptor,
+    options?: ProviderCacheOptions,
+  ): Promise<CachedPayload<T> | null> {
+    if (!this.config.cache || options?.useCache === false) {
       return null;
     }
 

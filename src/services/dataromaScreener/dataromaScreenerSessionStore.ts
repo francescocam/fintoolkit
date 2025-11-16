@@ -2,26 +2,26 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import {
   CachedPayload,
-  WizardSession,
-  WizardSessionStore,
+  DataromaScreenerSession,
+  DataromaScreenerSessionStore,
 } from '../../domain/contracts';
 
-export interface FileSystemSessionStoreOptions {
+export interface DataromaScreenerFileSessionStoreOptions {
   baseDir?: string;
 }
 
-export class FileSystemSessionStore implements WizardSessionStore {
+export class DataromaScreenerFileSessionStore implements DataromaScreenerSessionStore {
   private readonly baseDir: string;
 
-  constructor(options?: FileSystemSessionStoreOptions) {
-    this.baseDir = options?.baseDir ?? path.join(process.cwd(), '.wizard-sessions');
+  constructor(options?: DataromaScreenerFileSessionStoreOptions) {
+    this.baseDir = options?.baseDir ?? path.join(process.cwd(), '.dataroma-screener-sessions');
   }
 
   getBaseDir(): string {
     return this.baseDir;
   }
 
-  async load(id: string): Promise<WizardSession | null> {
+  async load(id: string): Promise<DataromaScreenerSession | null> {
     const filePath = this.filePath(id);
     try {
       const raw = await fs.readFile(filePath, 'utf-8');
@@ -35,7 +35,7 @@ export class FileSystemSessionStore implements WizardSessionStore {
     }
   }
 
-  async save(session: WizardSession): Promise<void> {
+  async save(session: DataromaScreenerSession): Promise<void> {
     await this.ensureDir();
     const filePath = this.filePath(session.id);
     const serialized = JSON.stringify(session, null, 2);
@@ -51,8 +51,8 @@ export class FileSystemSessionStore implements WizardSessionStore {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private hydrateSession(raw: any): WizardSession {
-    const session: WizardSession = {
+  private hydrateSession(raw: any): DataromaScreenerSession {
+    const session: DataromaScreenerSession = {
       ...raw,
       createdAt: new Date(raw.createdAt),
       steps: raw.steps ?? [],

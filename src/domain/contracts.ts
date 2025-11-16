@@ -23,8 +23,14 @@ export interface AppSettings {
   providerKeys: ProviderKey[];
   preferences: {
     defaultProvider: ProviderId;
-    reuseCacheByDefault: boolean;
+    cache: CachePreferences;
   };
+}
+
+export interface CachePreferences {
+  dataromaScrape: boolean;
+  stockUniverse: boolean;
+  [key: string]: boolean;
 }
 
 export interface DataromaEntry {
@@ -77,11 +83,15 @@ export interface FundamentalsSnapshot {
   raw: Record<string, unknown>;
 }
 
+export interface ProviderCacheOptions {
+  useCache?: boolean;
+}
+
 export interface FundamentalsProvider {
   id: ProviderId;
-  getExchanges(): Promise<CachedPayload<ExchangeSummary[]>>;
-  getSymbols(exchangeCode: string): Promise<CachedPayload<SymbolRecord[]>>;
-  getFundamentals(stockCode: string, exchangeCode: string): Promise<FundamentalsSnapshot>;
+  getExchanges(options?: ProviderCacheOptions): Promise<CachedPayload<ExchangeSummary[]>>;
+  getSymbols(exchangeCode: string, options?: ProviderCacheOptions): Promise<CachedPayload<SymbolRecord[]>>;
+  getFundamentals(stockCode: string, exchangeCode: string, options?: ProviderCacheOptions): Promise<FundamentalsSnapshot>;
 }
 
 export interface CacheStore {
@@ -106,19 +116,19 @@ export interface MatchEngine {
   confirmMatch(candidate: MatchCandidate, symbol?: SymbolRecord): MatchCandidate;
 }
 
-export type WizardStep = 'scrape' | 'universe' | 'match' | 'validate' | 'screener';
-export type WizardStatus = 'idle' | 'running' | 'blocked' | 'complete';
+export type DataromaScreenerStep = 'scrape' | 'universe' | 'match' | 'validate' | 'screener';
+export type DataromaScreenerStatus = 'idle' | 'running' | 'blocked' | 'complete';
 
-export interface WizardStepState {
-  step: WizardStep;
-  status: WizardStatus;
+export interface DataromaScreenerStepState {
+  step: DataromaScreenerStep;
+  status: DataromaScreenerStatus;
   context?: Record<string, unknown>;
 }
 
-export interface WizardSession {
+export interface DataromaScreenerSession {
   id: string;
   createdAt: Date;
-  steps: WizardStepState[];
+  steps: DataromaScreenerStepState[];
   dataroma?: ScrapeResult;
   providerUniverse?: {
     exchanges: CachedPayload<ExchangeSummary[]>;
@@ -128,7 +138,7 @@ export interface WizardSession {
   screenerRows?: FundamentalsSnapshot[];
 }
 
-export interface WizardSessionStore {
-  load(id: string): Promise<WizardSession | null>;
-  save(session: WizardSession): Promise<void>;
+export interface DataromaScreenerSessionStore {
+  load(id: string): Promise<DataromaScreenerSession | null>;
+  save(session: DataromaScreenerSession): Promise<void>;
 }

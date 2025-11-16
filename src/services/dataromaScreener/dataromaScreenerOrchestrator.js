@@ -1,0 +1,117 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DataromaScreenerOrchestrator = void 0;
+const crypto_1 = require("crypto");
+class DataromaScreenerOrchestrator {
+    constructor(config) {
+        this.config = config;
+    }
+    async startSession(options) {
+        const steps = [];
+        const session = {
+            id: (0, crypto_1.randomUUID)(),
+            createdAt: new Date(),
+            steps,
+        };
+        const cachePrefs = options?.cache ?? {};
+        const scrapeOptions = {
+            useCache: cachePrefs.dataromaScrape ?? true,
+            cacheToken: options?.cacheToken,
+            minPercent: options?.minPercent,
+        };
+        steps.push(this.createStepState('scrape', 'running', { minPercent: scrapeOptions.minPercent ?? 0 }));
+        await this.persistSession(session);
+        try {
+            session.dataroma = await this.config.scraper.scrapeGrandPortfolio(scrapeOptions);
+            this.updateStepState(steps[0], 'complete', {
+                source: session.dataroma.source,
+                entryCount: session.dataroma.entries.length,
+            });
+            await this.persistSession(session);
+        }
+        catch (error) {
+            this.updateStepState(steps[0], 'blocked', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+            });
+            await this.persistSession(session);
+            throw error;
+        }
+        steps.push(this.createStepState('universe', 'running'));
+        await this.persistSession(session);
+        try {
+            const universe = await this.buildUniverse(cachePrefs.stockUniverse ?? true);
+            session.providerUniverse = universe;
+            this.updateStepState(steps[1], 'complete', {
+                exchanges: universe.exchanges.payload.length,
+                symbolBatches: Object.keys(universe.symbols).length,
+            });
+            await this.persistSession(session);
+        }
+        catch (error) {
+            this.updateStepState(steps[1], 'blocked', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+            });
+            await this.persistSession(session);
+            throw error;
+        }
+        steps.push(this.createStepState('match', 'running'));
+        await this.persistSession(session);
+        try {
+            const matches = await this.generateMatches(session);
+            session.matches = matches;
+            this.updateStepState(steps[2], 'complete', {
+                matches: matches.length,
+            });
+            await this.persistSession(session);
+        }
+        catch (error) {
+            this.updateStepState(steps[2], 'blocked', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+            });
+            await this.persistSession(session);
+            throw error;
+        }
+        return session;
+    }
+    async buildUniverse(useCache) {
+        const exchanges = await this.config.provider.getExchanges({ useCache });
+        const symbols = {};
+        const selected = exchanges.payload.slice(0, this.config.maxSymbolExchanges ?? exchanges.payload.length);
+        for (const entry of selected) {
+            symbols[entry.code] = await this.config.provider.getSymbols(entry.code, { useCache });
+        }
+        return {
+            exchanges,
+            symbols,
+        };
+    }
+    async generateMatches(session) {
+        if (!session.dataroma) {
+            throw new Error('Dataroma scrape not completed.');
+        }
+        if (!session.providerUniverse) {
+            throw new Error('Provider universe not available.');
+        }
+        const providerSymbols = Object.values(session.providerUniverse.symbols).flatMap((payload) => payload.payload);
+        return this.config.matchEngine.generateCandidates(session.dataroma.entries, providerSymbols);
+    }
+    async loadSession(id) {
+        if (!this.config.store) {
+            return null;
+        }
+        return this.config.store.load(id);
+    }
+    createStepState(step, status, context) {
+        return { step, status, context };
+    }
+    updateStepState(step, status, context) {
+        step.status = status;
+        step.context = context;
+    }
+    async persistSession(session) {
+        if (this.config.store) {
+            await this.config.store.save(session);
+        }
+    }
+}
+exports.DataromaScreenerOrchestrator = DataromaScreenerOrchestrator;

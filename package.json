@@ -7,7 +7,7 @@
     "build": "vite build --config apps/web/vite.config.ts",
     "preview": "vite preview --config apps/web/vite.config.ts",
     "typecheck": "tsc -p tsconfig.json && tsc -p apps/web/tsconfig.json",
-    "wizard:server": "ts-node server/wizardServer.ts"
+    "dataroma-screener:server": "ts-node server/dataromaScreenerServer.ts"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",

@@ -1,5 +1,5 @@
-import { WizardSession } from '../types/wizard';
-import { AppSettings } from '../types/settings';
+import { DataromaScreenerSession } from '../types/dataromaScreener';
+import { AppSettings, CachePreferenceKey } from '../types/settings';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8787/api';
 
@@ -20,20 +20,26 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function fetchLatestSession(): Promise<WizardSession> {
-  const response = await fetch(`${API_BASE}/session/latest`);
-  return handleResponse<WizardSession>(response);
+export async function fetchLatestSession(): Promise<DataromaScreenerSession> {
+  const response = await fetch(`${API_BASE}/dataroma-screener/session/latest`);
+  return handleResponse<DataromaScreenerSession>(response);
 }
 
-export async function startNewSession(options?: { useCache?: boolean; minPercent?: number }): Promise<WizardSession> {
-  const response = await fetch(`${API_BASE}/session`, {
+export interface StartSessionOptions {
+  minPercent?: number;
+  cache?: Partial<Record<CachePreferenceKey, boolean>>;
+  cacheToken?: string;
+}
+
+export async function startNewSession(options?: StartSessionOptions): Promise<DataromaScreenerSession> {
+  const response = await fetch(`${API_BASE}/dataroma-screener/session`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(options ?? {}),
   });
-  return handleResponse<WizardSession>(response);
+  return handleResponse<DataromaScreenerSession>(response);
 }
 
 export async function fetchSettings(): Promise<AppSettings> {

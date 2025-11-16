@@ -1,8 +1,8 @@
-export type WizardStatus = 'idle' | 'running' | 'blocked' | 'complete';
+export type DataromaScreenerStatus = 'idle' | 'running' | 'blocked' | 'complete';
 
-export interface WizardStepState {
+export interface DataromaScreenerStepState {
   step: 'scrape' | 'universe' | 'match' | 'validate' | 'screener';
-  status: WizardStatus;
+  status: DataromaScreenerStatus;
   context?: Record<string, unknown>;
 }
 
@@ -35,10 +35,10 @@ export interface CachedPayload<T> {
   createdAt: string;
 }
 
-export interface WizardSession {
+export interface DataromaScreenerSession {
   id: string;
   createdAt: string;
-  steps: WizardStepState[];
+  steps: DataromaScreenerStepState[];
   dataroma?: {
     entries: DataromaEntry[];
     source: string;

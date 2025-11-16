@@ -4,13 +4,13 @@ import { DataromaScraperService } from '../src/services/scraper/dataromaScraper'
 import { InMemoryCacheStore } from '../src/services/cache/inMemoryCacheStore';
 import { EodhdProvider } from '../src/providers/eodhdProvider';
 import { BasicMatchEngine } from '../src/services/matching/basicMatchEngine';
-import { WizardOrchestrator } from '../src/services/wizard/wizardOrchestrator';
-import { FileSystemSessionStore } from '../src/services/wizard/fileSessionStore';
-import { WizardSession, AppSettings } from '../src/domain/contracts';
+import { DataromaScreenerOrchestrator } from '../src/services/dataromaScreener/dataromaScreenerOrchestrator';
+import { DataromaScreenerFileSessionStore } from '../src/services/dataromaScreener/dataromaScreenerSessionStore';
+import { DataromaScreenerSession, AppSettings } from '../src/domain/contracts';
 import { FetchHttpClient } from '../src/providers/httpClient';
 import { FileSettingsStore } from '../src/services/settings/fileSettingsStore';
 
-const PORT = Number(process.env.WIZARD_API_PORT ?? 8787);
+const PORT = Number(process.env.DATAROMA_SCREENER_API_PORT ?? 8787);
 
 const dataromaCache = new InMemoryCacheStore();
 const eodCache = new InMemoryCacheStore();
@@ -19,17 +19,17 @@ const dataromaHttpClient = new FetchHttpClient((url, init) => fetch(url, init));
 const eodHttpClient = new FetchHttpClient((url, init) => fetch(url, init));
 const scraper = new DataromaScraperService({ client: dataromaHttpClient, cache: dataromaCache });
 
-const sessionStore = new FileSystemSessionStore({
-  baseDir: path.join(__dirname, '..', '.wizard-sessions'),
+const sessionStore = new DataromaScreenerFileSessionStore({
+  baseDir: path.join(__dirname, '..', '.dataroma-screener-sessions'),
 });
 const settingsStore = new FileSettingsStore({
   filePath: path.join(__dirname, '..', '.config', 'settings.json'),
 });
 const matchEngine = new BasicMatchEngine();
 
-let orchestratorPromise: Promise<WizardOrchestrator> | null = null;
+let orchestratorPromise: Promise<DataromaScreenerOrchestrator> | null = null;
 
-let latestSession: WizardSession | null = null;
+let latestSession: DataromaScreenerSession | null = null;
 
 async function resolveApiToken(): Promise<string> {
   const settings = await settingsStore.load();
@@ -37,7 +37,23 @@ async function resolveApiToken(): Promise<string> {
   return stored || process.env.EODHD_API_TOKEN || 'demo';
 }
 
-async function buildOrchestrator(): Promise<WizardOrchestrator> {
+async function getCachePreferences(): Promise<AppSettings['preferences']['cache']> {
+  const settings = await settingsStore.load();
+  return settings.preferences.cache;
+}
+
+async function resolveCachePreferences(
+  overrides?: Partial<AppSettings['preferences']['cache']>,
+): Promise<AppSettings['preferences']['cache']> {
+  const defaults = await getCachePreferences();
+  return {
+    ...defaults,
+    ...sanitizeCacheOverrides(overrides),
+  } as AppSettings['preferences']['cache'];
+}
+
+
+async function buildOrchestrator(): Promise<DataromaScreenerOrchestrator> {
   const apiToken = await resolveApiToken();
   const provider = new EodhdProvider({
     apiToken,
@@ -45,7 +61,7 @@ async function buildOrchestrator(): Promise<WizardOrchestrator> {
     cache: eodCache,
   });
 
-  return new WizardOrchestrator({
+  return new DataromaScreenerOrchestrator({
     scraper,
     provider,
     matchEngine,
@@ -54,17 +70,18 @@ async function buildOrchestrator(): Promise<WizardOrchestrator> {
   });
 }
 
-async function getOrchestrator(): Promise<WizardOrchestrator> {
+async function getOrchestrator(): Promise<DataromaScreenerOrchestrator> {
   if (!orchestratorPromise) {
     orchestratorPromise = buildOrchestrator();
   }
   return orchestratorPromise;
 }
 
-async function ensureSession(): Promise<WizardSession> {
-  const wizard = await getOrchestrator();
+async function ensureSession(): Promise<DataromaScreenerSession> {
+  const screener = await getOrchestrator();
   if (!latestSession) {
-    latestSession = await wizard.startSession({ useCache: false });
+    const cache = await getCachePreferences();
+    latestSession = await screener.startSession({ cache });
   }
   return latestSession;
 }
@@ -117,8 +134,8 @@ async function handleSettingsUpdate(req: IncomingMessage, res: ServerResponse): 
 
 async function handleSessionById(res: ServerResponse, id: string): Promise<void> {
   try {
-    const wizard = await getOrchestrator();
-    const session = await wizard.loadSession(id);
+    const screener = await getOrchestrator();
+    const session = await screener.loadSession(id);
     if (!session) {
       sendJson(res, 404, { error: 'Session not found' });
       return;
@@ -136,11 +153,19 @@ async function handleCreateSession(req: IncomingMessage, res: ServerResponse): P
   });
   req.on('end', async () => {
     try {
-      const payload = body ? JSON.parse(body) : {};
-      const wizard = await getOrchestrator();
-      latestSession = await wizard.startSession({
-        useCache: Boolean(payload.useCache),
+      const payload = body ? (JSON.parse(body) as StartSessionPayload) : {};
+      const screener = await getOrchestrator();
+      const overrides: Partial<AppSettings['preferences']['cache']> = {
+        ...sanitizeCacheOverrides(payload.cache),
+      };
+      if (typeof payload.useCache === 'boolean') {
+        overrides.dataromaScrape = payload.useCache;
+      }
+      const cache = await resolveCachePreferences(overrides);
+      latestSession = await screener.startSession({
+        cache,
         minPercent: typeof payload.minPercent === 'number' ? payload.minPercent : undefined,
+        cacheToken: typeof payload.cacheToken === 'string' ? payload.cacheToken : undefined,
       });
       sendJson(res, 201, latestSession);
     } catch (error) {
@@ -162,7 +187,7 @@ createServer(async (req, res) => {
 
   const pathname = (req.url ?? '').split('?')[0];
 
-  if (req.method === 'GET' && pathname === '/api/session/latest') {
+  if (req.method === 'GET' && pathname === '/api/dataroma-screener/session/latest') {
     await handleLatestSession(res);
     return;
   }
@@ -177,8 +202,8 @@ createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === 'GET' && pathname?.startsWith('/api/session/')) {
-    const [, , , id] = pathname.split('/');
+  if (req.method === 'GET' && pathname?.startsWith('/api/dataroma-screener/session/')) {
+    const [, , , , id] = pathname.split('/');
     if (!id) {
       sendJson(res, 400, { error: 'Session id missing' });
       return;
@@ -187,12 +212,30 @@ createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && pathname === '/api/session') {
+  if (req.method === 'POST' && pathname === '/api/dataroma-screener/session') {
     await handleCreateSession(req, res);
     return;
   }
 
   sendJson(res, 404, { error: 'Route not found' });
 }).listen(PORT, () => {
-  console.log(`Wizard API server listening on http://localhost:${PORT}`);
+  console.log(`Dataroma Screener API server listening on http://localhost:${PORT}`);
 });
+
+interface StartSessionPayload {
+  cache?: Partial<AppSettings['preferences']['cache']>;
+  useCache?: boolean;
+  minPercent?: number;
+  cacheToken?: string;
+}
+
+function sanitizeCacheOverrides(
+  overrides?: Partial<AppSettings['preferences']['cache']>,
+): Partial<AppSettings['preferences']['cache']> {
+  if (!overrides) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(overrides).filter(([, value]) => typeof value === 'boolean'),
+  ) as Partial<AppSettings['preferences']['cache']>;
+}

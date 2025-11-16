@@ -10,7 +10,10 @@ const defaultSettings: AppSettings = {
   providerKeys: [],
   preferences: {
     defaultProvider: 'eodhd',
-    reuseCacheByDefault: true,
+    cache: {
+      dataromaScrape: true,
+      stockUniverse: true,
+    },
   },
 };
 
@@ -25,14 +28,16 @@ export class FileSettingsStore {
     try {
       const raw = await fs.readFile(this.filePath, 'utf-8');
       const parsed = JSON.parse(raw);
-      return {
+      const merged = {
         ...defaultSettings,
         ...parsed,
         preferences: {
           ...defaultSettings.preferences,
           ...(parsed?.preferences ?? {}),
+          cache: normalizeCachePreferences(parsed?.preferences),
         },
       };
+      return merged;
     } catch (error) {
       if ((error as { code?: string }).code === 'ENOENT') {
         return defaultSettings;
@@ -51,4 +56,21 @@ export class FileSettingsStore {
     const dir = path.dirname(this.filePath);
     await fs.mkdir(dir, { recursive: true });
   }
+}
+
+function normalizeCachePreferences(preferences?: AppSettings['preferences']) {
+  const defaultCache = defaultSettings.preferences.cache;
+  const parsedCache = preferences?.cache ?? {};
+  const legacy = (preferences as { reuseCacheByDefault?: boolean } | undefined)?.reuseCacheByDefault;
+
+  return {
+    ...defaultCache,
+    ...parsedCache,
+    ...(typeof legacy === 'boolean'
+      ? {
+          dataromaScrape: legacy,
+          stockUniverse: legacy,
+        }
+      : {}),
+  };
 }

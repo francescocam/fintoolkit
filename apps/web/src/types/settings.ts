@@ -4,11 +4,17 @@ export interface ProviderKey {
   updatedAt: string;
 }
 
+export interface CachePreferences {
+  dataromaScrape: boolean;
+  stockUniverse: boolean;
+  [key: string]: boolean;
+}
+
 export interface AppSettings {
   providerKeys: ProviderKey[];
   preferences: {
     defaultProvider: string;
-    reuseCacheByDefault: boolean;
+    cache: CachePreferences;
   };
 }
 
@@ -16,6 +22,11 @@ export const defaultSettings: AppSettings = {
   providerKeys: [],
   preferences: {
     defaultProvider: 'eodhd',
-    reuseCacheByDefault: true,
+    cache: {
+      dataromaScrape: true,
+      stockUniverse: true,
+    },
   },
 };
+
+export type CachePreferenceKey = keyof CachePreferences;

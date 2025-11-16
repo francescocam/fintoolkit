@@ -4,7 +4,7 @@
 * the app will provide a ui to the user
 * in the UI we need to create a settings page were the user con configure the app behavior. The first setting will be for the user to provide their eodhd.com api key 
 * the first feature we will be working on is a screener for the stocks included in dataroma.com grand portfolio this is how it will work:
-    1. in the user home page we will present him with a wizard to scrape the data from dataroma
+    1. in the user home page we will present him with a Dataroma Screener flow to scrape the data from dataroma
     2. we ask the user if he wants to cache/reuse cached data
     3. if not using cache we will scrape the Grand Portfolio list from https://www.dataroma.com/m/g/portfolio.php
     4. For now we will just scaffold the scraper. We will then implement it once we will be provided with the structure of the pages to scrape we il get the `Symbol` and `Stock` for every stock included in the Grand Portfolio

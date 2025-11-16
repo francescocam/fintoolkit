@@ -8,35 +8,43 @@ import {
   MatchEngine,
   ScrapeOptions,
   SymbolRecord,
-  WizardSession,
-  WizardSessionStore,
-  WizardStepState,
+  DataromaScreenerSession,
+  DataromaScreenerSessionStore,
+  DataromaScreenerStepState,
+  CachePreferences,
 } from '../../domain/contracts';
 
-export interface WizardOrchestratorConfig {
+export interface DataromaScreenerOrchestratorConfig {
   scraper: DataromaScraper;
   provider: FundamentalsProvider;
   matchEngine: MatchEngine;
   maxSymbolExchanges?: number;
-  store?: WizardSessionStore;
+  store?: DataromaScreenerSessionStore;
 }
 
-export class WizardOrchestrator {
-  constructor(private readonly config: WizardOrchestratorConfig) {}
+export class DataromaScreenerOrchestrator {
+  constructor(private readonly config: DataromaScreenerOrchestratorConfig) {}
 
-  async startSession(opts: ScrapeOptions): Promise<WizardSession> {
-    const steps: WizardStepState[] = [];
-    const session: WizardSession = {
+  async startSession(options?: DataromaScreenerRunOptions): Promise<DataromaScreenerSession> {
+    const steps: DataromaScreenerStepState[] = [];
+    const session: DataromaScreenerSession = {
       id: randomUUID(),
       createdAt: new Date(),
       steps,
     };
 
-    steps.push(this.createStepState('scrape', 'running', { minPercent: opts.minPercent ?? 0 }));
+    const cachePrefs = options?.cache ?? {};
+    const scrapeOptions: ScrapeOptions = {
+      useCache: cachePrefs.dataromaScrape ?? true,
+      cacheToken: options?.cacheToken,
+      minPercent: options?.minPercent,
+    };
+
+    steps.push(this.createStepState('scrape', 'running', { minPercent: scrapeOptions.minPercent ?? 0 }));
     await this.persistSession(session);
 
     try {
-      session.dataroma = await this.config.scraper.scrapeGrandPortfolio(opts);
+      session.dataroma = await this.config.scraper.scrapeGrandPortfolio(scrapeOptions);
       this.updateStepState(steps[0], 'complete', {
         source: session.dataroma.source,
         entryCount: session.dataroma.entries.length,
@@ -53,7 +61,7 @@ export class WizardOrchestrator {
     steps.push(this.createStepState('universe', 'running'));
     await this.persistSession(session);
     try {
-      const universe = await this.buildUniverse();
+      const universe = await this.buildUniverse(cachePrefs.stockUniverse ?? true);
       session.providerUniverse = universe;
       this.updateStepState(steps[1], 'complete', {
         exchanges: universe.exchanges.payload.length,
@@ -88,13 +96,15 @@ export class WizardOrchestrator {
     return session;
   }
 
-  private async buildUniverse(): Promise<NonNullable<WizardSession['providerUniverse']>> {
-    const exchanges = await this.config.provider.getExchanges();
+  private async buildUniverse(
+    useCache: boolean,
+  ): Promise<NonNullable<DataromaScreenerSession['providerUniverse']>> {
+    const exchanges = await this.config.provider.getExchanges({ useCache });
     const symbols: Record<string, CachedPayload<SymbolRecord[]>> = {};
 
     const selected = exchanges.payload.slice(0, this.config.maxSymbolExchanges ?? exchanges.payload.length);
     for (const entry of selected) {
-      symbols[entry.code] = await this.config.provider.getSymbols(entry.code);
+      symbols[entry.code] = await this.config.provider.getSymbols(entry.code, { useCache });
     }
 
     return {
@@ -103,7 +113,7 @@ export class WizardOrchestrator {
     };
   }
 
-  private async generateMatches(session: WizardSession): Promise<MatchCandidate[]> {
+  private async generateMatches(session: DataromaScreenerSession): Promise<MatchCandidate[]> {
     if (!session.dataroma) {
       throw new Error('Dataroma scrape not completed.');
     }
@@ -118,7 +128,7 @@ export class WizardOrchestrator {
     return this.config.matchEngine.generateCandidates(session.dataroma.entries, providerSymbols);
   }
 
-  async loadSession(id: string): Promise<WizardSession | null> {
+  async loadSession(id: string): Promise<DataromaScreenerSession | null> {
     if (!this.config.store) {
       return null;
     }
@@ -126,25 +136,31 @@ export class WizardOrchestrator {
   }
 
   private createStepState(
-    step: WizardStepState['step'],
-    status: WizardStepState['status'],
+    step: DataromaScreenerStepState['step'],
+    status: DataromaScreenerStepState['status'],
     context?: Record<string, unknown>,
-  ): WizardStepState {
+  ): DataromaScreenerStepState {
     return { step, status, context };
   }
 
   private updateStepState(
-    step: WizardStepState,
-    status: WizardStepState['status'],
+    step: DataromaScreenerStepState,
+    status: DataromaScreenerStepState['status'],
     context?: Record<string, unknown>,
   ): void {
     step.status = status;
     step.context = context;
   }
 
-  private async persistSession(session: WizardSession): Promise<void> {
+  private async persistSession(session: DataromaScreenerSession): Promise<void> {
     if (this.config.store) {
       await this.config.store.save(session);
     }
   }
+}
+
+export interface DataromaScreenerRunOptions {
+  cache?: Partial<CachePreferences>;
+  minPercent?: number;
+  cacheToken?: string;
 }

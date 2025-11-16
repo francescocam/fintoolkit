@@ -135,19 +135,19 @@ export interface MatchEngine {
 }
 ```
 
-## Wizard State
+## Dataroma Screener State
 
 ```ts
-export interface WizardStepState {
+export interface DataromaScreenerStepState {
   step: 'scrape' | 'universe' | 'match' | 'validate' | 'screener';
   status: 'idle' | 'running' | 'blocked' | 'complete';
   context?: Record<string, unknown>;
 }
 
-export interface WizardSession {
+export interface DataromaScreenerSession {
   id: string;
   createdAt: Date;
-  steps: WizardStepState[];
+  steps: DataromaScreenerStepState[];
   dataroma?: ScrapeResult;
   providerUniverse?: {
     exchanges: CachedPayload<ExchangeSummary[]>;

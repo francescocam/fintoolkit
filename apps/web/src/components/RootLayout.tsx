@@ -1,22 +1,23 @@
 import { PropsWithChildren } from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 
 const RootLayout = ({ children }: PropsWithChildren) => {
   return (
     <div className="app-shell">
       <header className="app-header">
         <div>
-          <h1>FinToolkit</h1>
-          <p className="app-subtitle">Explore opportunities across data providers</p>
+          <h1>
+            <Link to="/" className="logo-link">
+              FinToolkit
+            </Link>
+          </h1>
+          <p className="app-subtitle">Explore investment opportunities</p>
         </div>
-        <nav>
-          <NavLink to="/wizard" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-            Wizard
-          </NavLink>
-          <NavLink to="/settings" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+        <div className="app-header-actions">
+          <NavLink to="/settings" className={({ isActive }) => (isActive ? 'settings-link active' : 'settings-link')}>
             Settings
           </NavLink>
-        </nav>
+        </div>
       </header>
       <main>{children}</main>
     </div>
