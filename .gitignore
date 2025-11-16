@@ -1,4 +1,3 @@
 .dataroma-screener-sessions/
 .config/
 node_modules/
-package-lock.json

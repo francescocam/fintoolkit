@@ -17,23 +17,22 @@ npm install
 
 > If you are in an offline environment, you can still inspect the code. Run the command later when network access is available.
 
-### Start the Dataroma Screener API server
-
-The React app expects a local API that orchestrates the Dataroma Screener flow. Run this in a separate terminal:
-
-```bash
-npm run dataroma-screener:server
-```
-
-It exposes `http://localhost:8787/api/dataroma-screener/session/...` endpoints backed by the orchestrator plus `http://localhost:8787/api/settings` for reading/writing user preferences. Settings are persisted to `.config/settings.json` (gitignored). Use the UI settings page (or edit the JSON directly) to store your EODHD API key—live exchange/symbol calls pull from that file, falling back to the `EODHD_API_TOKEN` env var or `demo` if nothing is configured.
-
-### Run the UI
+### Start the dev servers
 
 ```bash
 npm run dev
 ```
 
-This starts the Vite dev server (defaults to http://localhost:5173). The Dataroma Screener view is mounted at `/dataroma-screener`, and settings at `/settings`. Keep the API server running so the UI can fetch live data.
+This command now launches both the Vite dev server (http://localhost:5173) and the API server (http://localhost:8787) so the UI can immediately talk to the orchestration backend. The Dataroma Screener view is mounted at `/dataroma-screener`, and settings at `/settings`.
+
+If you want to run the servers independently, you can still start them manually:
+
+```bash
+npm run dataroma-screener:server   # API
+npm run dev:vite                   # UI only
+```
+
+The API exposes `http://localhost:8787/api/dataroma-screener/session/...` endpoints plus `http://localhost:8787/api/settings` for reading/writing user preferences. Settings are persisted to `.config/settings.json` (gitignored). Use the UI settings page (or edit the JSON directly) to store your EODHD API key—live exchange/symbol calls pull from that file, falling back to the `EODHD_API_TOKEN` env var or `demo` if nothing is configured.
 
 ### Build for production
 

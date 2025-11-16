@@ -77,13 +77,11 @@ async function getOrchestrator(): Promise<DataromaScreenerOrchestrator> {
   return orchestratorPromise;
 }
 
-async function ensureSession(): Promise<DataromaScreenerSession> {
-  const screener = await getOrchestrator();
-  if (!latestSession) {
-    const cache = await getCachePreferences();
-    latestSession = await screener.startSession({ cache });
+async function getLatestSession(): Promise<DataromaScreenerSession | null> {
+  if (latestSession) {
+    return latestSession;
   }
-  return latestSession;
+  return null;
 }
 
 function sendJson(res: ServerResponse, status: number, payload: unknown): void {
@@ -94,7 +92,11 @@ function sendJson(res: ServerResponse, status: number, payload: unknown): void {
 
 async function handleLatestSession(res: ServerResponse): Promise<void> {
   try {
-    const session = await ensureSession();
+    const session = await getLatestSession();
+    if (!session) {
+      sendJson(res, 404, { error: 'No Dataroma screener session found. Start a new session.' });
+      return;
+    }
     sendJson(res, 200, session);
   } catch (error) {
     sendJson(res, 500, { error: (error as Error).message });

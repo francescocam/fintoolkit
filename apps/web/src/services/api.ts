@@ -20,8 +20,11 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function fetchLatestSession(): Promise<DataromaScreenerSession> {
+export async function fetchLatestSession(): Promise<DataromaScreenerSession | null> {
   const response = await fetch(`${API_BASE}/dataroma-screener/session/latest`);
+  if (response.status === 404) {
+    return null;
+  }
   return handleResponse<DataromaScreenerSession>(response);
 }
 
