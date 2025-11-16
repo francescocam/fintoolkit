@@ -3,6 +3,7 @@ import RootLayout from './components/RootLayout';
 import SettingsPage from './pages/SettingsPage';
 import DataromaScreenerPage from './pages/DataromaScreenerPage';
 import DataromaUniversePage from './pages/DataromaUniversePage';
+import DataromaMatchesPage from './pages/DataromaMatchesPage';
 import HomePage from './pages/HomePage';
 
 const App = () => {
@@ -12,6 +13,7 @@ const App = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/dataroma-screener" element={<DataromaScreenerPage />} />
         <Route path="/dataroma-screener/universe" element={<DataromaUniversePage />} />
+        <Route path="/dataroma-screener/matches" element={<DataromaMatchesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

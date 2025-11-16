@@ -2,9 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchLatestSession, startNewSession, StartSessionOptions } from '../services/api';
 import { DataromaScreenerSession } from '../types/dataromaScreener';
 
-export const useDataromaScreenerSession = () => {
+export interface UseDataromaScreenerSessionOptions {
+  autoLoad?: boolean;
+}
+
+export const useDataromaScreenerSession = (options?: UseDataromaScreenerSessionOptions) => {
+  const autoLoad = options?.autoLoad ?? true;
   const [session, setSession] = useState<DataromaScreenerSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(autoLoad);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,8 +43,23 @@ export const useDataromaScreenerSession = () => {
   );
 
   useEffect(() => {
-    loadLatest();
-  }, [loadLatest]);
+    if (!autoLoad) {
+      return;
+    }
+    void loadLatest();
+  }, [autoLoad, loadLatest]);
+
+  const mutateSession = useCallback(
+    (updater: (session: DataromaScreenerSession) => DataromaScreenerSession) => {
+      setSession((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        return updater(prev);
+      });
+    },
+    [],
+  );
 
   return {
     session,
@@ -48,5 +68,6 @@ export const useDataromaScreenerSession = () => {
     error,
     refresh: loadLatest,
     startNewSession: createSession,
+    mutateSession,
   };
 };

@@ -106,6 +106,7 @@ export interface MatchCandidate {
   providerSymbol?: SymbolRecord;
   confidence: number;
   reasons: string[];
+  notAvailable?: boolean;
 }
 
 export interface MatchEngine {

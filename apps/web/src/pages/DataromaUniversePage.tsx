@@ -1,9 +1,13 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDataromaScreenerSession } from '../hooks/useDataromaScreenerSession';
 import { useCachePreference } from '../hooks/useCachePreference';
 
 const DataromaUniversePage = () => {
-  const { session, loading, starting, error, startNewSession } = useDataromaScreenerSession();
+  const navigate = useNavigate();
+  const { session, loading, starting, error, startNewSession } = useDataromaScreenerSession({
+    autoLoad: false,
+  });
   const {
     useCache,
     loading: prefLoading,
@@ -78,7 +82,7 @@ const DataromaUniversePage = () => {
         </div>
       )}
       <div className="dataroma-screener-next">
-        <button type="button" className="pill-button" disabled>
+        <button type="button" className="pill-button" onClick={() => navigate('/dataroma-screener/matches')}>
           Next step
         </button>
       </div>

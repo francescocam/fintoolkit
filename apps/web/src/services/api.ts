@@ -1,4 +1,4 @@
-import { DataromaScreenerSession } from '../types/dataromaScreener';
+import { DataromaScreenerSession, MatchCandidate } from '../types/dataromaScreener';
 import { AppSettings, CachePreferenceKey } from '../types/settings';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8787/api';
@@ -59,4 +59,38 @@ export async function saveSettings(settings: AppSettings): Promise<AppSettings> 
     body: JSON.stringify(settings),
   });
   return handleResponse<AppSettings>(response);
+}
+
+export interface SymbolSearchResult {
+  code: string;
+  name: string;
+  exchange: string;
+  country?: string;
+  currency?: string;
+  isin?: string | null;
+}
+
+export async function searchUniverseSymbols(query: string): Promise<SymbolSearchResult[]> {
+  const response = await fetch(
+    `${API_BASE}/dataroma-screener/universe/search?query=${encodeURIComponent(query)}`,
+  );
+  const payload = await handleResponse<{ results: SymbolSearchResult[] }>(response);
+  return payload.results;
+}
+
+export interface UpdateMatchPayload {
+  dataromaSymbol: string;
+  notAvailable?: boolean;
+  providerSymbol?: SymbolSearchResult;
+}
+
+export async function updateMatch(payload: UpdateMatchPayload): Promise<MatchCandidate> {
+  const response = await fetch(`${API_BASE}/dataroma-screener/matches`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<MatchCandidate>(response);
 }

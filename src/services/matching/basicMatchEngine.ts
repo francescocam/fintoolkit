@@ -42,6 +42,7 @@ export class BasicMatchEngine implements MatchEngine {
         providerSymbol,
         confidence,
         reasons,
+        notAvailable: false,
       };
     });
   }
@@ -53,6 +54,7 @@ export class BasicMatchEngine implements MatchEngine {
         providerSymbol: symbol,
         confidence: 1,
         reasons: [...candidate.reasons, 'User confirmed match'],
+        notAvailable: false,
       };
     }
 
@@ -61,6 +63,7 @@ export class BasicMatchEngine implements MatchEngine {
       providerSymbol: undefined,
       confidence: 0,
       reasons: [...candidate.reasons, 'User marked as unavailable'],
+      notAvailable: true,
     };
   }
 

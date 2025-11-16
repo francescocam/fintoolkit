@@ -29,6 +29,7 @@ class BasicMatchEngine {
                 providerSymbol,
                 confidence,
                 reasons,
+                notAvailable: false,
             };
         });
     }
@@ -39,6 +40,7 @@ class BasicMatchEngine {
                 providerSymbol: symbol,
                 confidence: 1,
                 reasons: [...candidate.reasons, 'User confirmed match'],
+                notAvailable: false,
             };
         }
         return {
@@ -46,6 +48,7 @@ class BasicMatchEngine {
             providerSymbol: undefined,
             confidence: 0,
             reasons: [...candidate.reasons, 'User marked as unavailable'],
+            notAvailable: true,
         };
     }
     buildSymbolIndex(symbols) {

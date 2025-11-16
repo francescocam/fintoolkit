@@ -23,6 +23,7 @@ export interface MatchCandidate {
   };
   confidence: number;
   reasons: string[];
+  notAvailable?: boolean;
 }
 
 export interface CachedPayload<T> {

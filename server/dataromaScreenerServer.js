@@ -101,6 +101,31 @@ async function getLatestSession() {
     }
     return null;
 }
+function flattenProviderSymbols(universe) {
+    return Object.values(universe.symbols).flatMap((payload) => payload.payload);
+}
+function searchSymbolsInUniverse(universe, query) {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) {
+        return [];
+    }
+    const symbols = flattenProviderSymbols(universe);
+    return symbols
+        .filter((symbol) => symbol.name.toLowerCase().includes(normalized))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .slice(0, 15);
+}
+function findSymbolInUniverse(universe, code, exchange) {
+    const normalizedCode = code.toUpperCase();
+    for (const payload of Object.values(universe.symbols)) {
+        const match = payload.payload.find((symbol) => symbol.code.toUpperCase() === normalizedCode &&
+            (!exchange || symbol.exchange.toUpperCase() === exchange.toUpperCase()));
+        if (match) {
+            return match;
+        }
+    }
+    return null;
+}
 function sendJson(res, status, payload) {
     res.statusCode = status;
     res.setHeader('Content-Type', 'application/json');
@@ -192,6 +217,71 @@ async function handleCreateSession(req, res) {
         }
     });
 }
+async function handleUniverseSearch(res, query) {
+    if (!query || query.trim().length < 2) {
+        sendJson(res, 400, { error: 'Search query must be at least 2 characters long.' });
+        return;
+    }
+    const session = await getLatestSession();
+    if (!session || !session.providerUniverse) {
+        sendJson(res, 404, { error: 'No stock universe available. Run the screener first.' });
+        return;
+    }
+    const results = searchSymbolsInUniverse(session.providerUniverse, query);
+    sendJson(res, 200, { results });
+}
+async function handleMatchUpdate(req, res) {
+    let body = '';
+    req.on('data', (chunk) => {
+        body += chunk;
+    });
+    req.on('end', async () => {
+        try {
+            const payload = body ? JSON.parse(body) : null;
+            if (!payload || typeof payload.dataromaSymbol !== 'string') {
+                sendJson(res, 400, { error: 'Invalid match payload' });
+                return;
+            }
+            const session = await getLatestSession();
+            if (!session || !session.matches) {
+                sendJson(res, 404, { error: 'No match suggestions available. Run the screener.' });
+                return;
+            }
+            const match = session.matches.find((entry) => entry.dataromaSymbol === payload.dataromaSymbol);
+            if (!match) {
+                sendJson(res, 404, { error: 'Match candidate not found' });
+                return;
+            }
+            if (payload.notAvailable) {
+                match.providerSymbol = undefined;
+                match.notAvailable = true;
+            }
+            else if (payload.providerSymbol) {
+                if (!session.providerUniverse) {
+                    sendJson(res, 400, { error: 'Stock universe missing. Re-run the screener.' });
+                    return;
+                }
+                const resolved = findSymbolInUniverse(session.providerUniverse, payload.providerSymbol.code, payload.providerSymbol.exchange);
+                if (!resolved) {
+                    sendJson(res, 400, { error: 'Selected symbol not found in cached universe.' });
+                    return;
+                }
+                match.providerSymbol = resolved;
+                match.notAvailable = false;
+            }
+            else {
+                sendJson(res, 400, { error: 'Provide a symbol or mark the candidate as not available.' });
+                return;
+            }
+            await sessionStore.save(session);
+            latestSession = session;
+            sendJson(res, 200, match);
+        }
+        catch (error) {
+            sendJson(res, 500, { error: error.message });
+        }
+    });
+}
 (0, http_1.createServer)(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
@@ -201,9 +291,14 @@ async function handleCreateSession(req, res) {
         res.end();
         return;
     }
-    const pathname = (req.url ?? '').split('?')[0];
+    const { pathname, searchParams } = parseRequestUrl(req.url);
     if (req.method === 'GET' && pathname === '/api/dataroma-screener/session/latest') {
         await handleLatestSession(res);
+        return;
+    }
+    if (req.method === 'GET' && pathname === '/api/dataroma-screener/universe/search') {
+        const query = searchParams.query ?? '';
+        await handleUniverseSearch(res, query);
         return;
     }
     if (req.method === 'GET' && pathname === '/api/settings') {
@@ -227,6 +322,10 @@ async function handleCreateSession(req, res) {
         await handleCreateSession(req, res);
         return;
     }
+    if (req.method === 'PUT' && pathname === '/api/dataroma-screener/matches') {
+        await handleMatchUpdate(req, res);
+        return;
+    }
     sendJson(res, 404, { error: 'Route not found' });
 }).listen(PORT, () => {
     console.log(`Dataroma Screener API server listening on http://localhost:${PORT}`);
@@ -236,4 +335,22 @@ function sanitizeCacheOverrides(overrides) {
         return {};
     }
     return Object.fromEntries(Object.entries(overrides).filter(([, value]) => typeof value === 'boolean'));
+}
+function parseRequestUrl(rawUrl) {
+    const [path = '/', query = ''] = (rawUrl ?? '/').split('?');
+    const searchParams = {};
+    if (query) {
+        for (const pair of query.split('&')) {
+            if (!pair) {
+                continue;
+            }
+            const [rawKey, rawValue = ''] = pair.split('=');
+            const key = decodeURIComponent(rawKey);
+            const value = decodeURIComponent(rawValue.replace(/\+/g, ' '));
+            if (key) {
+                searchParams[key] = value;
+            }
+        }
+    }
+    return { pathname: path, searchParams };
 }

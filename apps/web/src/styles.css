@@ -310,6 +310,10 @@ main {
   min-width: 420px;
 }
 
+.dataroma-screener-table.wide table {
+  min-width: 900px;
+}
+
 .dataroma-screener-table table th,
 .dataroma-screener-table table td {
   padding: 1rem 1.5rem;
@@ -331,10 +335,168 @@ main {
   font-size: 0.95rem;
 }
 
+.match-value {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: center;
+  align-items: center;
+}
+
+.match-value .symbol-search {
+  width: 100%;
+}
+
+.match-status {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.match-status.matched {
+  color: #16a34a;
+}
+
+.match-detail {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.match-confidence {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: #f5f3ff;
+  color: #6d28d9;
+  font-weight: 600;
+}
+
+.not-available-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #cbd5f5;
+  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.not-available-flag.active {
+  border-color: #fb7185;
+  background: #ffe4e6;
+  color: #be123c;
+}
+
+.symbol-search {
+  position: relative;
+  width: 100%;
+}
+
+.symbol-search.unavailable input {
+  border-color: #f97316;
+  color: #ea580c;
+}
+
+.symbol-search.open .symbol-search-dropdown {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.match-symbol-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5f5;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.match-symbol-input:focus {
+  outline: none;
+  border-color: #a5b4fc;
+  box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.25);
+}
+
+.symbol-search-dropdown {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(320px, 80vw);
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 15px 45px rgba(15, 23, 42, 0.15);
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 0;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.symbol-search-dropdown ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.symbol-search-dropdown li button {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.symbol-search-dropdown li button:hover {
+  background: #f8fafc;
+}
+
+.symbol-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.symbol-meta {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.symbol-search-status {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.symbol-search-status.muted {
+  color: #94a3b8;
+}
+
+.not-available-option {
+  color: #be123c;
+}
+
 .dataroma-screener-next {
   margin-top: 3rem;
   display: flex;
   justify-content: center;
+}
+
+.dataroma-screener-next.match-actions {
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .panel {
