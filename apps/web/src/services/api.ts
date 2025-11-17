@@ -45,6 +45,31 @@ export async function startNewSession(options?: StartSessionOptions): Promise<Da
   return handleResponse<DataromaScreenerSession>(response);
 }
 
+export interface UniverseStepOptions {
+  cache?: Partial<Record<CachePreferenceKey, boolean>>;
+}
+
+export async function runUniverseStep(
+  sessionId: string,
+  options?: UniverseStepOptions,
+): Promise<DataromaScreenerSession> {
+  const response = await fetch(`${API_BASE}/dataroma-screener/session/${sessionId}/universe`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(options ?? {}),
+  });
+  return handleResponse<DataromaScreenerSession>(response);
+}
+
+export async function runMatchStep(sessionId: string): Promise<DataromaScreenerSession> {
+  const response = await fetch(`${API_BASE}/dataroma-screener/session/${sessionId}/matches`, {
+    method: 'POST',
+  });
+  return handleResponse<DataromaScreenerSession>(response);
+}
+
 export async function fetchSettings(): Promise<AppSettings> {
   const response = await fetch(`${API_BASE}/settings`);
   return handleResponse<AppSettings>(response);

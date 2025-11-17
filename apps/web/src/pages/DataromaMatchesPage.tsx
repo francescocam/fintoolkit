@@ -14,7 +14,7 @@ const formatConfidence = (value?: number) => {
 
 const DataromaMatchesPage = () => {
   const navigate = useNavigate();
-  const { session, loading, error, mutateSession } = useDataromaScreenerSession();
+  const { session, loading, error, matching, generateMatches, mutateSession } = useDataromaScreenerSession();
   const [rowUpdates, setRowUpdates] = useState<Record<string, boolean>>({});
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -85,8 +85,21 @@ const DataromaMatchesPage = () => {
       <header className="dataroma-screener-hero">
         <h2>Dataroma Screener</h2>
         <p>Step 3 - Match Suggestions</p>
+        <div className="dataroma-screener-actions">
+          <button
+            type="button"
+            className="pill-button"
+            onClick={() => void generateMatches()}
+            disabled={matching || !session?.providerUniverse}
+          >
+            {matching ? 'Generating...' : 'Get Matches'}
+          </button>
+        </div>
       </header>
       {error && <p className="alert error">{error}</p>}
+      {!session?.providerUniverse && !loading && (
+        <p className="alert info">Run Step 2 first to fetch the stock universe.</p>
+      )}
       {actionError && <p className="alert error">{actionError}</p>}
       {loading ? (
         <p className="alert info">Loading match suggestions...</p>

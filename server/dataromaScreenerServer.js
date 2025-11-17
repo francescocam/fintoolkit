@@ -189,6 +189,42 @@ async function handleSessionById(res, id) {
         sendJson(res, 500, { error: error.message });
     }
 }
+async function handleUniverseStep(req, res, sessionId) {
+    let body = '';
+    req.on('data', (chunk) => {
+        body += chunk;
+    });
+    req.on('end', async () => {
+        try {
+            const payload = body ? JSON.parse(body) : {};
+            const screener = await getOrchestrator();
+            const overrides = {
+                ...sanitizeCacheOverrides(payload.cache),
+            };
+            if (typeof payload.useCache === 'boolean') {
+                overrides.stockUniverse = payload.useCache;
+            }
+            const cachePrefs = await resolveCachePreferences(overrides);
+            latestSession = await screener.runUniverseStep(sessionId, {
+                useCache: cachePrefs.stockUniverse,
+            });
+            sendJson(res, 200, latestSession);
+        }
+        catch (error) {
+            sendJson(res, 500, { error: error.message });
+        }
+    });
+}
+async function handleMatchGeneration(res, sessionId) {
+    try {
+        const screener = await getOrchestrator();
+        latestSession = await screener.runMatchStep(sessionId);
+        sendJson(res, 200, latestSession);
+    }
+    catch (error) {
+        sendJson(res, 500, { error: error.message });
+    }
+}
 async function handleCreateSession(req, res) {
     let body = '';
     req.on('data', (chunk) => {
@@ -309,18 +345,30 @@ async function handleMatchUpdate(req, res) {
         await handleSettingsUpdate(req, res);
         return;
     }
-    if (req.method === 'GET' && pathname?.startsWith('/api/dataroma-screener/session/')) {
-        const [, , , , id] = pathname.split('/');
+    if (req.method === 'POST' && pathname === '/api/dataroma-screener/session') {
+        await handleCreateSession(req, res);
+        return;
+    }
+    if (pathname?.startsWith('/api/dataroma-screener/session/')) {
+        const segments = pathname.split('/').filter(Boolean);
+        const id = segments[3];
+        const subresource = segments[4];
         if (!id) {
             sendJson(res, 400, { error: 'Session id missing' });
             return;
         }
-        await handleSessionById(res, id);
-        return;
-    }
-    if (req.method === 'POST' && pathname === '/api/dataroma-screener/session') {
-        await handleCreateSession(req, res);
-        return;
+        if (req.method === 'GET' && segments.length === 4) {
+            await handleSessionById(res, id);
+            return;
+        }
+        if (req.method === 'POST' && segments.length === 5 && subresource === 'universe') {
+            await handleUniverseStep(req, res, id);
+            return;
+        }
+        if (req.method === 'POST' && segments.length === 5 && subresource === 'matches') {
+            await handleMatchGeneration(res, id);
+            return;
+        }
     }
     if (req.method === 'PUT' && pathname === '/api/dataroma-screener/matches') {
         await handleMatchUpdate(req, res);

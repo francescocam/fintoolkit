@@ -38,9 +38,9 @@ const dataromaScraper_1 = require("../src/services/scraper/dataromaScraper");
 const localFixtureHttpClient_1 = require("../src/providers/localFixtureHttpClient");
 const inMemoryCacheStore_1 = require("../src/services/cache/inMemoryCacheStore");
 const dataromaScreenerOrchestrator_1 = require("../src/services/dataromaScreener/dataromaScreenerOrchestrator");
+const dataromaScreenerSessionStore_1 = require("../src/services/dataromaScreener/dataromaScreenerSessionStore");
 const eodhdProvider_1 = require("../src/providers/eodhdProvider");
 const basicMatchEngine_1 = require("../src/services/matching/basicMatchEngine");
-const dataromaScreenerSessionStore_1 = require("../src/services/dataromaScreener/dataromaScreenerSessionStore");
 async function main() {
     const fixturesRoot = path.join(__dirname, '..', 'fixtures');
     const dataromaFixture = path.join(fixturesRoot, 'dataroma', 'grand-portfolio.html');
@@ -77,23 +77,24 @@ async function main() {
     const session = await screener.startSession({
         cache: {
             dataromaScrape: false,
-            stockUniverse: false,
         },
     });
     const scrapeStep = session.steps.find((step) => step.step === 'scrape');
-    const universeStep = session.steps.find((step) => step.step === 'universe');
-    const matchStep = session.steps.find((step) => step.step === 'match');
+    const universeSession = await screener.runUniverseStep(session.id, { useCache: false });
+    const universeStep = universeSession.steps.find((step) => step.step === 'universe');
+    const matchSession = await screener.runMatchStep(session.id);
+    const matchStep = matchSession.steps.find((step) => step.step === 'match');
     console.log('Dataroma Screener scrape step completed:');
     console.log(JSON.stringify(scrapeStep, null, 2));
     console.log(`Sample entries (${session.dataroma?.entries.length ?? 0} total):`);
     console.log(session.dataroma?.entries.slice(0, 5));
     console.log('\nUniverse step summary:');
     console.log(JSON.stringify(universeStep, null, 2));
-    const symbolKeys = Object.keys(session.providerUniverse?.symbols ?? {});
+    const symbolKeys = Object.keys(universeSession.providerUniverse?.symbols ?? {});
     console.log('Fetched symbol batches for exchanges:', symbolKeys);
     console.log('\nMatch step summary:');
     console.log(JSON.stringify(matchStep, null, 2));
-    console.log('Sample matches:', session.matches?.slice(0, 5));
+    console.log('Sample matches:', matchSession.matches?.slice(0, 5));
     const savedPath = path.join(sessionStore.getBaseDir(), `${session.id}.json`);
     console.log(`\nSession persisted to: ${savedPath}`);
     const reloaded = await screener.loadSession(session.id);

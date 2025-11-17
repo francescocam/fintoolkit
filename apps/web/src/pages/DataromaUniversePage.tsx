@@ -5,9 +5,7 @@ import { useCachePreference } from '../hooks/useCachePreference';
 
 const DataromaUniversePage = () => {
   const navigate = useNavigate();
-  const { session, loading, starting, error, startNewSession } = useDataromaScreenerSession({
-    autoLoad: false,
-  });
+  const { session, loading, universeLoading, error, buildUniverse } = useDataromaScreenerSession();
   const {
     useCache,
     loading: prefLoading,
@@ -34,10 +32,10 @@ const DataromaUniversePage = () => {
           <button
             type="button"
             className="pill-button"
-            onClick={() => startNewSession({ cache: { stockUniverse: useCache } })}
-            disabled={starting || prefLoading}
+            onClick={() => void buildUniverse({ cache: { stockUniverse: useCache } })}
+            disabled={universeLoading || prefLoading || !session?.dataroma}
           >
-            {starting ? 'Fetching...' : 'Get Data'}
+            {universeLoading ? 'Fetching...' : 'Get Data'}
           </button>
           <button
             type="button"
@@ -51,6 +49,9 @@ const DataromaUniversePage = () => {
         </div>
       </header>
       {(error || prefError) && <p className="alert error">{error ?? prefError}</p>}
+      {!session?.dataroma && !loading && (
+        <p className="alert info">Run Step 1 first to fetch the latest Dataroma scrape.</p>
+      )}
       {loading ? (
         <p className="alert info">Loading EODHD universe...</p>
       ) : (

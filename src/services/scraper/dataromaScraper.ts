@@ -32,15 +32,18 @@ export class DataromaScraperService implements DataromaScraper {
     if (opts.useCache) {
       const cached = await this.config.cache?.read<DataromaEntry[]>(descriptor);
       if (cached) {
+        const entries = this.deduplicateEntries(cached.payload);
+        const normalizedPayload =
+          entries === cached.payload ? cached : { ...cached, payload: entries };
         return {
-          entries: cached.payload,
+          entries,
           source: 'cache',
-          cachedPayload: cached,
+          cachedPayload: normalizedPayload,
         };
       }
     }
 
-    const entries = await this.fetchAllPages(opts);
+    const entries = this.deduplicateEntries(await this.fetchAllPages(opts));
     const cachedPayload = entries.length ? await this.persist(descriptor, entries) : undefined;
 
     return {
@@ -153,6 +156,28 @@ export class DataromaScraperService implements DataromaScraper {
     }
 
     return allEntries;
+  }
+
+  private deduplicateEntries(entries: DataromaEntry[]): DataromaEntry[] {
+    const seen = new Set<string>();
+    let hasDuplicates = false;
+    const deduped: DataromaEntry[] = [];
+
+    for (const entry of entries) {
+      const key = this.buildEntryKey(entry);
+      if (seen.has(key)) {
+        hasDuplicates = true;
+        continue;
+      }
+      seen.add(key);
+      deduped.push(entry);
+    }
+
+    return hasDuplicates ? deduped : entries;
+  }
+
+  private buildEntryKey(entry: DataromaEntry): string {
+    return `${entry.symbol.toUpperCase()}::${entry.stock.toUpperCase()}`;
   }
 
   private extractCellText(rowHtml: string, className: string): string | undefined {

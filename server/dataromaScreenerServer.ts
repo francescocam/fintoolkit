@@ -188,6 +188,42 @@ async function handleSessionById(res: ServerResponse, id: string): Promise<void>
   }
 }
 
+async function handleUniverseStep(req: IncomingMessage, res: ServerResponse, sessionId: string): Promise<void> {
+  let body = '';
+  req.on('data', (chunk) => {
+    body += chunk;
+  });
+  req.on('end', async () => {
+    try {
+      const payload = body ? (JSON.parse(body) as StepPayload) : {};
+      const screener = await getOrchestrator();
+      const overrides: Partial<AppSettings['preferences']['cache']> = {
+        ...sanitizeCacheOverrides(payload.cache),
+      };
+      if (typeof payload.useCache === 'boolean') {
+        overrides.stockUniverse = payload.useCache;
+      }
+      const cachePrefs = await resolveCachePreferences(overrides);
+      latestSession = await screener.runUniverseStep(sessionId, {
+        useCache: cachePrefs.stockUniverse,
+      });
+      sendJson(res, 200, latestSession);
+    } catch (error) {
+      sendJson(res, 500, { error: (error as Error).message });
+    }
+  });
+}
+
+async function handleMatchGeneration(res: ServerResponse, sessionId: string): Promise<void> {
+  try {
+    const screener = await getOrchestrator();
+    latestSession = await screener.runMatchStep(sessionId);
+    sendJson(res, 200, latestSession);
+  } catch (error) {
+    sendJson(res, 500, { error: (error as Error).message });
+  }
+}
+
 async function handleCreateSession(req: IncomingMessage, res: ServerResponse): Promise<void> {
   let body = '';
   req.on('data', (chunk) => {
@@ -318,19 +354,34 @@ createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === 'GET' && pathname?.startsWith('/api/dataroma-screener/session/')) {
-    const [, , , , id] = pathname.split('/');
+  if (req.method === 'POST' && pathname === '/api/dataroma-screener/session') {
+    await handleCreateSession(req, res);
+    return;
+  }
+
+  if (pathname?.startsWith('/api/dataroma-screener/session/')) {
+    const segments = pathname.split('/').filter(Boolean);
+    const id = segments[3];
+    const subresource = segments[4];
     if (!id) {
       sendJson(res, 400, { error: 'Session id missing' });
       return;
     }
-    await handleSessionById(res, id);
-    return;
-  }
 
-  if (req.method === 'POST' && pathname === '/api/dataroma-screener/session') {
-    await handleCreateSession(req, res);
-    return;
+    if (req.method === 'GET' && segments.length === 4) {
+      await handleSessionById(res, id);
+      return;
+    }
+
+    if (req.method === 'POST' && segments.length === 5 && subresource === 'universe') {
+      await handleUniverseStep(req, res, id);
+      return;
+    }
+
+    if (req.method === 'POST' && segments.length === 5 && subresource === 'matches') {
+      await handleMatchGeneration(res, id);
+      return;
+    }
   }
 
   if (req.method === 'PUT' && pathname === '/api/dataroma-screener/matches') {
@@ -349,6 +400,8 @@ interface StartSessionPayload {
   minPercent?: number;
   cacheToken?: string;
 }
+
+type StepPayload = Pick<StartSessionPayload, 'cache' | 'useCache'>;
 
 interface UpdateMatchPayload {
   dataromaSymbol: string;
