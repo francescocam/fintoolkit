@@ -16,12 +16,9 @@ async function main(): Promise<void> {
     fixtures: {
       'https://www.dataroma.com/m/g/portfolio.php': dataromaFixture,
       'https://eodhd.com/api/exchanges-list?api_token=demo&fmt=json': eodhdFixture('exchanges.json'),
-      'https://eodhd.com/api/exchange-symbol-list/US?api_token=demo&fmt=json&type=common_stock':
-        eodhdFixture('symbols-US.json'),
-      'https://eodhd.com/api/exchange-symbol-list/LSE?api_token=demo&fmt=json&type=common_stock':
-        eodhdFixture('symbols-LSE.json'),
-      'https://eodhd.com/api/exchange-symbol-list/TO?api_token=demo&fmt=json&type=common_stock':
-        eodhdFixture('symbols-TO.json'),
+      'https://eodhd.com/api/exchange-symbol-list/US?api_token=demo&fmt=json': eodhdFixture('symbols-US.json'),
+      'https://eodhd.com/api/exchange-symbol-list/LSE?api_token=demo&fmt=json': eodhdFixture('symbols-LSE.json'),
+      'https://eodhd.com/api/exchange-symbol-list/TO?api_token=demo&fmt=json': eodhdFixture('symbols-TO.json'),
     },
   });
 
@@ -46,7 +43,6 @@ async function main(): Promise<void> {
     scraper,
     provider,
     matchEngine,
-    maxSymbolExchanges: 2,
     store: sessionStore,
   });
   const session = await screener.startSession({

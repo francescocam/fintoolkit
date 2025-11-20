@@ -10,6 +10,7 @@ declare module 'fs' {
     writeFile(path: string, data: string, encoding: string): Promise<void>;
     mkdir(path: string, options?: { recursive?: boolean }): Promise<void>;
     readdir(path: string): Promise<string[]>;
+    unlink(path: string): Promise<void>;
   };
 }
 

@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DataromaScreenerFileSessionStore = exports.DataromaScreenerOrchestrator = exports.LocalFixtureHttpClient = exports.BasicMatchEngine = exports.DataromaScraperService = exports.InMemoryCacheStore = exports.FetchHttpClient = exports.EodhdProvider = void 0;
+exports.DataromaScreenerFileSessionStore = exports.DataromaScreenerOrchestrator = exports.LocalFixtureHttpClient = exports.BasicMatchEngine = exports.DataromaScraperService = exports.FileCacheStore = exports.InMemoryCacheStore = exports.FetchHttpClient = exports.EodhdProvider = void 0;
 __exportStar(require("./domain/contracts"), exports);
 var eodhdProvider_1 = require("./providers/eodhdProvider");
 Object.defineProperty(exports, "EodhdProvider", { enumerable: true, get: function () { return eodhdProvider_1.EodhdProvider; } });
@@ -22,6 +22,8 @@ var httpClient_1 = require("./providers/httpClient");
 Object.defineProperty(exports, "FetchHttpClient", { enumerable: true, get: function () { return httpClient_1.FetchHttpClient; } });
 var inMemoryCacheStore_1 = require("./services/cache/inMemoryCacheStore");
 Object.defineProperty(exports, "InMemoryCacheStore", { enumerable: true, get: function () { return inMemoryCacheStore_1.InMemoryCacheStore; } });
+var fileCacheStore_1 = require("./services/cache/fileCacheStore");
+Object.defineProperty(exports, "FileCacheStore", { enumerable: true, get: function () { return fileCacheStore_1.FileCacheStore; } });
 var dataromaScraper_1 = require("./services/scraper/dataromaScraper");
 Object.defineProperty(exports, "DataromaScraperService", { enumerable: true, get: function () { return dataromaScraper_1.DataromaScraperService; } });
 var basicMatchEngine_1 = require("./services/matching/basicMatchEngine");

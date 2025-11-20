@@ -1,7 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import * as path from 'path';
 import { DataromaScraperService } from '../src/services/scraper/dataromaScraper';
-import { InMemoryCacheStore } from '../src/services/cache/inMemoryCacheStore';
+import { FileCacheStore } from '../src/services/cache/fileCacheStore';
 import { EodhdProvider } from '../src/providers/eodhdProvider';
 import { BasicMatchEngine } from '../src/services/matching/basicMatchEngine';
 import { DataromaScreenerOrchestrator } from '../src/services/dataromaScreener/dataromaScreenerOrchestrator';
@@ -12,8 +12,12 @@ import { FileSettingsStore } from '../src/services/settings/fileSettingsStore';
 
 const PORT = Number(process.env.DATAROMA_SCREENER_API_PORT ?? 8787);
 
-const dataromaCache = new InMemoryCacheStore();
-const eodCache = new InMemoryCacheStore();
+const dataromaCache = new FileCacheStore({
+  baseDir: path.join(__dirname, '..', '.cache', 'dataroma'),
+});
+const eodCache = new FileCacheStore({
+  baseDir: path.join(__dirname, '..', '.cache', 'eodhd'),
+});
 
 const dataromaHttpClient = new FetchHttpClient((url, init) => fetch(url, init));
 const eodHttpClient = new FetchHttpClient((url, init) => fetch(url, init));
@@ -65,7 +69,6 @@ async function buildOrchestrator(): Promise<DataromaScreenerOrchestrator> {
     scraper,
     provider,
     matchEngine,
-    maxSymbolExchanges: 2,
     store: sessionStore,
   });
 }

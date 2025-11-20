@@ -95,10 +95,7 @@ export class EodhdProvider implements FundamentalsProvider {
 
     const payload = await this.config.client.getJson<RawSymbolRecord[]>(
       `${this.baseUrl}/exchange-symbol-list/${normalizedCode}`,
-      {
-        ...this.authParams(),
-        type: 'common_stock',
-      },
+      this.authParams(),
     );
 
     const normalizedSymbols = payload.map((record) => this.normalizeSymbol(record));

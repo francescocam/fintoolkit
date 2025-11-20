@@ -1,3 +1,4 @@
 .dataroma-screener-sessions/
 .config/
 node_modules/
+.cache/

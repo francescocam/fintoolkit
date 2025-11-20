@@ -13,14 +13,16 @@ class DataromaScraperService {
         if (opts.useCache) {
             const cached = await this.config.cache?.read(descriptor);
             if (cached) {
+                const entries = this.deduplicateEntries(cached.payload);
+                const normalizedPayload = entries === cached.payload ? cached : { ...cached, payload: entries };
                 return {
-                    entries: cached.payload,
+                    entries,
                     source: 'cache',
-                    cachedPayload: cached,
+                    cachedPayload: normalizedPayload,
                 };
             }
         }
-        const entries = await this.fetchAllPages(opts);
+        const entries = this.deduplicateEntries(await this.fetchAllPages(opts));
         const cachedPayload = entries.length ? await this.persist(descriptor, entries) : undefined;
         return {
             entries,
@@ -110,6 +112,24 @@ class DataromaScraperService {
             allEntries.push(...entries);
         }
         return allEntries;
+    }
+    deduplicateEntries(entries) {
+        const seen = new Set();
+        let hasDuplicates = false;
+        const deduped = [];
+        for (const entry of entries) {
+            const key = this.buildEntryKey(entry);
+            if (seen.has(key)) {
+                hasDuplicates = true;
+                continue;
+            }
+            seen.add(key);
+            deduped.push(entry);
+        }
+        return hasDuplicates ? deduped : entries;
+    }
+    buildEntryKey(entry) {
+        return `${entry.symbol.toUpperCase()}::${entry.stock.toUpperCase()}`;
     }
     extractCellText(rowHtml, className) {
         const cellRegex = new RegExp(`<td\\s+class="${className}"[^>]*>([\\s\\S]*?)<\\/td>`, 'i');

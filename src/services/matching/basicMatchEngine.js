@@ -55,6 +55,9 @@ class BasicMatchEngine {
         return new Map(symbols.map((record) => [this.normalize(record.code), record]));
     }
     normalize(value) {
+        if (!value) {
+            return '';
+        }
         return value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     }
     findNameMatch(dataromaName, providerSymbols) {
@@ -81,6 +84,9 @@ class BasicMatchEngine {
         return intersection.size / union.size;
     }
     tokenize(value) {
+        if (!value) {
+            return new Set();
+        }
         return new Set(value
             .toUpperCase()
             .split(/[^A-Z0-9]+/)

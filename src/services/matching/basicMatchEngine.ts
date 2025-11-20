@@ -71,7 +71,10 @@ export class BasicMatchEngine implements MatchEngine {
     return new Map(symbols.map((record) => [this.normalize(record.code), record]));
   }
 
-  private normalize(value: string): string {
+  private normalize(value: string | null | undefined): string {
+    if (!value) {
+      return '';
+    }
     return value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   }
 
@@ -107,7 +110,10 @@ export class BasicMatchEngine implements MatchEngine {
     return intersection.size / union.size;
   }
 
-  private tokenize(value: string): Set<string> {
+  private tokenize(value: string | null | undefined): Set<string> {
+    if (!value) {
+      return new Set();
+    }
     return new Set(
       value
         .toUpperCase()

@@ -36,7 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const http_1 = require("http");
 const path = __importStar(require("path"));
 const dataromaScraper_1 = require("../src/services/scraper/dataromaScraper");
-const inMemoryCacheStore_1 = require("../src/services/cache/inMemoryCacheStore");
+const fileCacheStore_1 = require("../src/services/cache/fileCacheStore");
 const eodhdProvider_1 = require("../src/providers/eodhdProvider");
 const basicMatchEngine_1 = require("../src/services/matching/basicMatchEngine");
 const dataromaScreenerOrchestrator_1 = require("../src/services/dataromaScreener/dataromaScreenerOrchestrator");
@@ -44,8 +44,12 @@ const dataromaScreenerSessionStore_1 = require("../src/services/dataromaScreener
 const httpClient_1 = require("../src/providers/httpClient");
 const fileSettingsStore_1 = require("../src/services/settings/fileSettingsStore");
 const PORT = Number(process.env.DATAROMA_SCREENER_API_PORT ?? 8787);
-const dataromaCache = new inMemoryCacheStore_1.InMemoryCacheStore();
-const eodCache = new inMemoryCacheStore_1.InMemoryCacheStore();
+const dataromaCache = new fileCacheStore_1.FileCacheStore({
+    baseDir: path.join(__dirname, '..', '.cache', 'dataroma'),
+});
+const eodCache = new fileCacheStore_1.FileCacheStore({
+    baseDir: path.join(__dirname, '..', '.cache', 'eodhd'),
+});
 const dataromaHttpClient = new httpClient_1.FetchHttpClient((url, init) => fetch(url, init));
 const eodHttpClient = new httpClient_1.FetchHttpClient((url, init) => fetch(url, init));
 const scraper = new dataromaScraper_1.DataromaScraperService({ client: dataromaHttpClient, cache: dataromaCache });
@@ -85,7 +89,6 @@ async function buildOrchestrator() {
         scraper,
         provider,
         matchEngine,
-        maxSymbolExchanges: 2,
         store: sessionStore,
     });
 }
