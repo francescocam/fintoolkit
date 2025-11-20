@@ -3,8 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataromaScraperService = void 0;
 const DATAROMA_PROVIDER_ID = 'dataroma';
 const DEFAULT_URL = 'https://www.dataroma.com/m/g/portfolio.php';
-const DATAROMA_ORIGIN = 'https://www.dataroma.com';
-const EXCHANGE_CONCURRENCY = 5;
 class DataromaScraperService {
     constructor(config) {
         this.config = config;
@@ -29,8 +27,7 @@ class DataromaScraperService {
             }
         }
         const rawEntries = await this.fetchAllPages(normalized);
-        const dedupedEntries = this.deduplicateEntries(rawEntries);
-        const entries = await this.enrichExchanges(dedupedEntries);
+        const entries = this.deduplicateEntries(rawEntries);
         const cachedPayload = entries.length ? await this.persist(descriptor, entries) : undefined;
         return {
             entries,
@@ -84,15 +81,12 @@ class DataromaScraperService {
             const rowHtml = rowMatch[1];
             const symbol = this.extractCellText(rowHtml, 'sym');
             const stock = this.extractCellText(rowHtml, 'stock');
-            const detailPath = this.extractDetailPath(rowHtml);
             if (!symbol || !stock) {
                 continue;
             }
             entries.push({
                 symbol: this.cleanSymbol(symbol),
                 stock,
-                exchange: undefined,
-                detailPath,
             });
         }
         const totalPages = this.extractTotalPages(html);
@@ -131,35 +125,6 @@ class DataromaScraperService {
         }
         return allEntries;
     }
-    async enrichExchanges(entries) {
-        return this.mapWithConcurrency(entries, EXCHANGE_CONCURRENCY, async (entry) => {
-            const { detailPath, ...rest } = entry;
-            let next = rest;
-            try {
-                const exchange = await this.fetchExchange(entry);
-                if (exchange) {
-                    next = { ...rest, exchange };
-                }
-            }
-            catch {
-                // Ignore individual failures; keep what we have
-            }
-            return next;
-        });
-    }
-    async fetchExchange(entry) {
-        if (!entry.detailPath) {
-            return undefined;
-        }
-        const detailUrl = this.resolveUrl(entry.detailPath);
-        const detailHtml = await this.getTextWithDelay(detailUrl);
-        const tradingViewUrl = this.extractTradingViewUrl(detailHtml);
-        if (!tradingViewUrl) {
-            return undefined;
-        }
-        const tradingViewHtml = await this.getTextWithDelay(tradingViewUrl);
-        return this.extractExchange(tradingViewHtml);
-    }
     deduplicateEntries(entries) {
         const seen = new Set();
         let hasDuplicates = false;
@@ -189,30 +154,6 @@ class DataromaScraperService {
     stripTags(value) {
         return value.replace(/<[^>]+>/g, ' ');
     }
-    extractDetailPath(rowHtml) {
-        const symCellMatch = rowHtml.match(/<td\s+class="sym"[^>]*>([\s\S]*?)<\/td>/i);
-        if (!symCellMatch) {
-            return undefined;
-        }
-        const hrefMatch = symCellMatch[1].match(/<a[^>]+href="([^"]+)"/i);
-        return hrefMatch ? this.decodeHtml(hrefMatch[1]) : undefined;
-    }
-    extractTradingViewUrl(html) {
-        const linkMatch = html.match(/https?:\/\/www\.tradingview\.com\/symbols\/[^"'\s<>]+/i);
-        return linkMatch ? this.decodeHtml(linkMatch[0]) : undefined;
-    }
-    extractExchange(html) {
-        const match = html.match(/<span[^>]*class="[^"]*provider-[^"]*"[^>]*>([^<]+)<\/span>/i);
-        return match ? match[1].trim() : undefined;
-    }
-    resolveUrl(pathname) {
-        try {
-            return new URL(pathname, DATAROMA_ORIGIN).toString();
-        }
-        catch {
-            return pathname;
-        }
-    }
     async getTextWithDelay(url, params) {
         await this.humanDelay();
         return this.config.client.getText(url, params);
@@ -229,23 +170,6 @@ class DataromaScraperService {
             return undefined;
         }
         return Math.floor(value);
-    }
-    async mapWithConcurrency(items, concurrency, fn) {
-        if (items.length === 0) {
-            return [];
-        }
-        const limit = Math.max(1, concurrency);
-        const results = new Array(items.length);
-        let nextIndex = 0;
-        const worker = async () => {
-            while (nextIndex < items.length) {
-                const current = nextIndex++;
-                results[current] = await fn(items[current], current);
-            }
-        };
-        const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
-        await Promise.all(workers);
-        return results;
     }
     cleanSymbol(value) {
         return value.replace(/\s+/g, '').toUpperCase();

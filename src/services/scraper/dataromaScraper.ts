@@ -12,10 +12,6 @@ import { HttpClient, QueryParams } from '../../providers/httpClient';
 
 const DATAROMA_PROVIDER_ID: ProviderId = 'dataroma';
 const DEFAULT_URL = 'https://www.dataroma.com/m/g/portfolio.php';
-const DATAROMA_ORIGIN = 'https://www.dataroma.com';
-const EXCHANGE_CONCURRENCY = 5;
-
-type ScrapedEntry = DataromaEntry & { detailPath?: string };
 
 export interface DataromaScraperConfig {
   client: HttpClient;
@@ -52,8 +48,7 @@ export class DataromaScraperService implements DataromaScraper {
     }
 
     const rawEntries = await this.fetchAllPages(normalized);
-    const dedupedEntries = this.deduplicateEntries(rawEntries);
-    const entries = await this.enrichExchanges(dedupedEntries);
+    const entries = this.deduplicateEntries(rawEntries);
     const cachedPayload = entries.length ? await this.persist(descriptor, entries) : undefined;
 
     return {
@@ -104,7 +99,7 @@ export class DataromaScraperService implements DataromaScraper {
     };
   }
 
-  private parsePage(html: string): { entries: ScrapedEntry[]; totalPages: number } {
+  private parsePage(html: string): { entries: DataromaEntry[]; totalPages: number } {
     const tbodyMatch = html.match(/<tbody>([\s\S]*?)<\/tbody>/i);
     if (!tbodyMatch) {
       throw new Error('Unable to locate table body in Dataroma response.');
@@ -112,14 +107,13 @@ export class DataromaScraperService implements DataromaScraper {
 
     const tbody = tbodyMatch[1];
     const rowRegex = /<tr>([\s\S]*?)<\/tr>/gi;
-    const entries: ScrapedEntry[] = [];
+    const entries: DataromaEntry[] = [];
 
     let rowMatch: RegExpExecArray | null;
     while ((rowMatch = rowRegex.exec(tbody)) !== null) {
       const rowHtml = rowMatch[1];
       const symbol = this.extractCellText(rowHtml, 'sym');
       const stock = this.extractCellText(rowHtml, 'stock');
-      const detailPath = this.extractDetailPath(rowHtml);
 
       if (!symbol || !stock) {
         continue;
@@ -128,8 +122,6 @@ export class DataromaScraperService implements DataromaScraper {
       entries.push({
         symbol: this.cleanSymbol(symbol),
         stock,
-        exchange: undefined,
-        detailPath,
       });
     }
 
@@ -158,7 +150,7 @@ export class DataromaScraperService implements DataromaScraper {
     return maxPage;
   }
 
-  private async fetchAllPages(opts: ScrapeOptions): Promise<ScrapedEntry[]> {
+  private async fetchAllPages(opts: ScrapeOptions): Promise<DataromaEntry[]> {
     const firstHtml = await this.getTextWithDelay(this.baseUrl, this.buildQuery(opts));
     const { entries: firstEntries, totalPages } = this.parsePage(firstHtml);
     const allEntries = [...firstEntries];
@@ -178,38 +170,6 @@ export class DataromaScraperService implements DataromaScraper {
     }
 
     return allEntries;
-  }
-
-  private async enrichExchanges(entries: ScrapedEntry[]): Promise<DataromaEntry[]> {
-    return this.mapWithConcurrency(entries, EXCHANGE_CONCURRENCY, async (entry) => {
-      const { detailPath, ...rest } = entry;
-      let next: DataromaEntry = rest;
-      try {
-        const exchange = await this.fetchExchange(entry);
-        if (exchange) {
-          next = { ...rest, exchange };
-        }
-      } catch {
-        // Ignore individual failures; keep what we have
-      }
-      return next;
-    });
-  }
-
-  private async fetchExchange(entry: ScrapedEntry): Promise<string | undefined> {
-    if (!entry.detailPath) {
-      return undefined;
-    }
-
-    const detailUrl = this.resolveUrl(entry.detailPath);
-    const detailHtml = await this.getTextWithDelay(detailUrl);
-    const tradingViewUrl = this.extractTradingViewUrl(detailHtml);
-    if (!tradingViewUrl) {
-      return undefined;
-    }
-
-    const tradingViewHtml = await this.getTextWithDelay(tradingViewUrl);
-    return this.extractExchange(tradingViewHtml);
   }
 
   private deduplicateEntries<T extends DataromaEntry>(entries: T[]): T[] {
@@ -248,35 +208,6 @@ export class DataromaScraperService implements DataromaScraper {
     return value.replace(/<[^>]+>/g, ' ');
   }
 
-  private extractDetailPath(rowHtml: string): string | undefined {
-    const symCellMatch = rowHtml.match(/<td\s+class="sym"[^>]*>([\s\S]*?)<\/td>/i);
-    if (!symCellMatch) {
-      return undefined;
-    }
-    const hrefMatch = symCellMatch[1].match(/<a[^>]+href="([^"]+)"/i);
-    return hrefMatch ? this.decodeHtml(hrefMatch[1]) : undefined;
-  }
-
-  private extractTradingViewUrl(html: string): string | undefined {
-    const linkMatch = html.match(/https?:\/\/www\.tradingview\.com\/symbols\/[^"'\s<>]+/i);
-    return linkMatch ? this.decodeHtml(linkMatch[0]) : undefined;
-  }
-
-  private extractExchange(html: string): string | undefined {
-    const match = html.match(
-      /<span[^>]*class="[^"]*provider-[^"]*"[^>]*>([^<]+)<\/span>/i,
-    );
-    return match ? match[1].trim() : undefined;
-  }
-
-  private resolveUrl(pathname: string): string {
-    try {
-      return new URL(pathname, DATAROMA_ORIGIN).toString();
-    } catch {
-      return pathname;
-    }
-  }
-
   private async getTextWithDelay(url: string, params?: QueryParams): Promise<string> {
     await this.humanDelay();
     return this.config.client.getText(url, params);
@@ -295,31 +226,6 @@ export class DataromaScraperService implements DataromaScraper {
       return undefined;
     }
     return Math.floor(value);
-  }
-
-  private async mapWithConcurrency<T, R>(
-    items: T[],
-    concurrency: number,
-    fn: (item: T, index: number) => Promise<R>,
-  ): Promise<R[]> {
-    if (items.length === 0) {
-      return [];
-    }
-
-    const limit = Math.max(1, concurrency);
-    const results = new Array<R>(items.length);
-    let nextIndex = 0;
-
-    const worker = async (): Promise<void> => {
-      while (nextIndex < items.length) {
-        const current = nextIndex++;
-        results[current] = await fn(items[current], current);
-      }
-    };
-
-    const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
-    await Promise.all(workers);
-    return results;
   }
 
   private cleanSymbol(value: string): string {
