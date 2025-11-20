@@ -3,14 +3,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataromaScraperService = void 0;
 const DATAROMA_PROVIDER_ID = 'dataroma';
 const DEFAULT_URL = 'https://www.dataroma.com/m/g/portfolio.php';
+const DATAROMA_ORIGIN = 'https://www.dataroma.com';
+const EXCHANGE_CONCURRENCY = 5;
 class DataromaScraperService {
     constructor(config) {
         this.config = config;
         this.baseUrl = config.baseUrl ?? DEFAULT_URL;
     }
     async scrapeGrandPortfolio(opts) {
-        const descriptor = this.createDescriptor(opts);
-        if (opts.useCache) {
+        const normalized = {
+            ...opts,
+            maxEntries: this.normalizeMaxEntries(opts.maxEntries),
+        };
+        const descriptor = this.createDescriptor(normalized);
+        if (normalized.useCache) {
             const cached = await this.config.cache?.read(descriptor);
             if (cached) {
                 const entries = this.deduplicateEntries(cached.payload);
@@ -22,7 +28,9 @@ class DataromaScraperService {
                 };
             }
         }
-        const entries = this.deduplicateEntries(await this.fetchAllPages(opts));
+        const rawEntries = await this.fetchAllPages(normalized);
+        const dedupedEntries = this.deduplicateEntries(rawEntries);
+        const entries = await this.enrichExchanges(dedupedEntries);
         const cachedPayload = entries.length ? await this.persist(descriptor, entries) : undefined;
         return {
             entries,
@@ -40,7 +48,8 @@ class DataromaScraperService {
     }
     buildCacheKey(opts) {
         const min = opts.minPercent ?? 0;
-        return `grand-portfolio:${min}`;
+        const max = opts.maxEntries ?? 'all';
+        return `grand-portfolio:v2:${min}:max-${max}`;
     }
     buildQuery(opts, page) {
         const params = {};
@@ -75,12 +84,15 @@ class DataromaScraperService {
             const rowHtml = rowMatch[1];
             const symbol = this.extractCellText(rowHtml, 'sym');
             const stock = this.extractCellText(rowHtml, 'stock');
+            const detailPath = this.extractDetailPath(rowHtml);
             if (!symbol || !stock) {
                 continue;
             }
             entries.push({
                 symbol: this.cleanSymbol(symbol),
                 stock,
+                exchange: undefined,
+                detailPath,
             });
         }
         const totalPages = this.extractTotalPages(html);
@@ -103,15 +115,50 @@ class DataromaScraperService {
         return maxPage;
     }
     async fetchAllPages(opts) {
-        const firstHtml = await this.config.client.getText(this.baseUrl, this.buildQuery(opts));
+        const firstHtml = await this.getTextWithDelay(this.baseUrl, this.buildQuery(opts));
         const { entries: firstEntries, totalPages } = this.parsePage(firstHtml);
         const allEntries = [...firstEntries];
+        if (opts.maxEntries && allEntries.length >= opts.maxEntries) {
+            return allEntries.slice(0, opts.maxEntries);
+        }
         for (let page = 2; page <= totalPages; page++) {
-            const html = await this.config.client.getText(this.baseUrl, this.buildQuery(opts, page));
+            const html = await this.getTextWithDelay(this.baseUrl, this.buildQuery(opts, page));
             const { entries } = this.parsePage(html);
             allEntries.push(...entries);
+            if (opts.maxEntries && allEntries.length >= opts.maxEntries) {
+                return allEntries.slice(0, opts.maxEntries);
+            }
         }
         return allEntries;
+    }
+    async enrichExchanges(entries) {
+        return this.mapWithConcurrency(entries, EXCHANGE_CONCURRENCY, async (entry) => {
+            const { detailPath, ...rest } = entry;
+            let next = rest;
+            try {
+                const exchange = await this.fetchExchange(entry);
+                if (exchange) {
+                    next = { ...rest, exchange };
+                }
+            }
+            catch {
+                // Ignore individual failures; keep what we have
+            }
+            return next;
+        });
+    }
+    async fetchExchange(entry) {
+        if (!entry.detailPath) {
+            return undefined;
+        }
+        const detailUrl = this.resolveUrl(entry.detailPath);
+        const detailHtml = await this.getTextWithDelay(detailUrl);
+        const tradingViewUrl = this.extractTradingViewUrl(detailHtml);
+        if (!tradingViewUrl) {
+            return undefined;
+        }
+        const tradingViewHtml = await this.getTextWithDelay(tradingViewUrl);
+        return this.extractExchange(tradingViewHtml);
     }
     deduplicateEntries(entries) {
         const seen = new Set();
@@ -141,6 +188,64 @@ class DataromaScraperService {
     }
     stripTags(value) {
         return value.replace(/<[^>]+>/g, ' ');
+    }
+    extractDetailPath(rowHtml) {
+        const symCellMatch = rowHtml.match(/<td\s+class="sym"[^>]*>([\s\S]*?)<\/td>/i);
+        if (!symCellMatch) {
+            return undefined;
+        }
+        const hrefMatch = symCellMatch[1].match(/<a[^>]+href="([^"]+)"/i);
+        return hrefMatch ? this.decodeHtml(hrefMatch[1]) : undefined;
+    }
+    extractTradingViewUrl(html) {
+        const linkMatch = html.match(/https?:\/\/www\.tradingview\.com\/symbols\/[^"'\s<>]+/i);
+        return linkMatch ? this.decodeHtml(linkMatch[0]) : undefined;
+    }
+    extractExchange(html) {
+        const match = html.match(/<span[^>]*class="[^"]*provider-[^"]*"[^>]*>([^<]+)<\/span>/i);
+        return match ? match[1].trim() : undefined;
+    }
+    resolveUrl(pathname) {
+        try {
+            return new URL(pathname, DATAROMA_ORIGIN).toString();
+        }
+        catch {
+            return pathname;
+        }
+    }
+    async getTextWithDelay(url, params) {
+        await this.humanDelay();
+        return this.config.client.getText(url, params);
+    }
+    async humanDelay() {
+        const delay = Math.random() < 0.5 ? 100 : 200;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+    normalizeMaxEntries(value) {
+        if (typeof value !== 'number' || !Number.isFinite(value)) {
+            return undefined;
+        }
+        if (value <= 0) {
+            return undefined;
+        }
+        return Math.floor(value);
+    }
+    async mapWithConcurrency(items, concurrency, fn) {
+        if (items.length === 0) {
+            return [];
+        }
+        const limit = Math.max(1, concurrency);
+        const results = new Array(items.length);
+        let nextIndex = 0;
+        const worker = async () => {
+            while (nextIndex < items.length) {
+                const current = nextIndex++;
+                results[current] = await fn(items[current], current);
+            }
+        };
+        const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+        await Promise.all(workers);
+        return results;
     }
     cleanSymbol(value) {
         return value.replace(/\s+/g, '').toUpperCase();

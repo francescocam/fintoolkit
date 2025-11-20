@@ -37,6 +37,7 @@ export class DataromaScreenerOrchestrator {
       useCache: cachePrefs.dataromaScrape ?? true,
       cacheToken: options?.cacheToken,
       minPercent: options?.minPercent,
+      maxEntries: options?.maxEntries,
     };
 
     steps.push(this.createStepState('scrape', 'running', { minPercent: scrapeOptions.minPercent ?? 0 }));
@@ -214,6 +215,7 @@ export interface DataromaScreenerRunOptions {
   cache?: Partial<CachePreferences>;
   minPercent?: number;
   cacheToken?: string;
+  maxEntries?: number;
 }
 
 export interface UniverseStepRunOptions {

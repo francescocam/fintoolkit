@@ -242,11 +242,16 @@ async function handleCreateSession(req: IncomingMessage, res: ServerResponse): P
       if (typeof payload.useCache === 'boolean') {
         overrides.dataromaScrape = payload.useCache;
       }
+      const maxEntries =
+        typeof payload.maxEntries === 'number' && payload.maxEntries > 0
+          ? Math.floor(payload.maxEntries)
+          : undefined;
       const cache = await resolveCachePreferences(overrides);
       latestSession = await screener.startSession({
         cache,
         minPercent: typeof payload.minPercent === 'number' ? payload.minPercent : undefined,
         cacheToken: typeof payload.cacheToken === 'string' ? payload.cacheToken : undefined,
+        maxEntries,
       });
       sendJson(res, 201, latestSession);
     } catch (error) {
@@ -402,6 +407,7 @@ interface StartSessionPayload {
   useCache?: boolean;
   minPercent?: number;
   cacheToken?: string;
+  maxEntries?: number;
 }
 
 type StepPayload = Pick<StartSessionPayload, 'cache' | 'useCache'>;

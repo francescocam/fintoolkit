@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useDataromaScreenerSession } from '../hooks/useDataromaScreenerSession';
 import { useCachePreference } from '../hooks/useCachePreference';
 
@@ -12,6 +13,7 @@ const DataromaScreenerPage = () => {
     error: prefError,
     setUseCache,
   } = useCachePreference('dataromaScrape');
+  const [maxEntries, setMaxEntries] = useState('20');
 
   const dataromaRows = session?.dataroma?.entries ?? [];
 
@@ -24,7 +26,15 @@ const DataromaScreenerPage = () => {
           <button
             type="button"
             className="pill-button"
-            onClick={() => startNewSession({ cache: { dataromaScrape: useCache } })}
+            onClick={() =>
+              startNewSession({
+                cache: { dataromaScrape: useCache },
+                maxEntries:
+                  Number.isFinite(Number(maxEntries)) && Number(maxEntries) > 0
+                    ? Number(maxEntries)
+                    : undefined,
+              })
+            }
             disabled={starting || prefLoading}
           >
             {starting ? 'Fetching...' : 'Get Data'}
@@ -38,6 +48,17 @@ const DataromaScreenerPage = () => {
             <span className="toggle-pill-label">Keep previous scrape</span>
             <span className="toggle-indicator" aria-hidden="true" />
           </button>
+          <label className="input-field">
+            <span className="input-label">Limit rows (optional)</span>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={maxEntries}
+              onChange={(e) => setMaxEntries(e.target.value)}
+              placeholder="20"
+            />
+          </label>
         </div>
       </header>
       {(error || prefError) && <p className="alert error">{error ?? prefError}</p>}
@@ -50,12 +71,13 @@ const DataromaScreenerPage = () => {
               <tr>
                 <th>Dataroma Stock Symbol</th>
                 <th>Dataroma Stock Name</th>
+                <th>Exchange</th>
               </tr>
             </thead>
             <tbody>
               {dataromaRows.length === 0 ? (
                 <tr>
-                  <td colSpan={2} className="table-empty">
+                  <td colSpan={3} className="table-empty">
                     Run the scraper to populate this table.
                   </td>
                 </tr>
@@ -64,6 +86,7 @@ const DataromaScreenerPage = () => {
                   <tr key={`${row.symbol}-${row.stock}`}>
                     <td>{row.symbol}</td>
                     <td>{row.stock}</td>
+                    <td>{row.exchange ?? '—'}</td>
                   </tr>
                 ))
               )}

@@ -32,6 +32,7 @@ export interface StartSessionOptions {
   minPercent?: number;
   cache?: Partial<Record<CachePreferenceKey, boolean>>;
   cacheToken?: string;
+  maxEntries?: number;
 }
 
 export async function startNewSession(options?: StartSessionOptions): Promise<DataromaScreenerSession> {

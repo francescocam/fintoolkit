@@ -36,12 +36,14 @@ export interface CachePreferences {
 export interface DataromaEntry {
   symbol: string;
   stock: string;
+  exchange?: string;
 }
 
 export interface ScrapeOptions {
   useCache: boolean;
   cacheToken?: string;
   minPercent?: number;
+  maxEntries?: number;
 }
 
 export interface ScrapeResult {

@@ -45,12 +45,14 @@ export interface AppSettings {
 export interface DataromaEntry {
   symbol: string; // e.g. "BRK.B"
   stock: string;  // display name such as "Berkshire Hathaway Inc. Class B"
+  exchange?: string; // trading venue scraped from TradingView, e.g. "NYSE American"
 }
 
 export interface ScrapeOptions {
   useCache: boolean;
   cacheToken?: string;
   minPercent?: number;
+  maxEntries?: number; // optional cap to avoid scraping the full list
 }
 
 export interface ScrapeResult {

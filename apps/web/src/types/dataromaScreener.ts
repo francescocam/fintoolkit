@@ -9,6 +9,7 @@ export interface DataromaScreenerStepState {
 export interface DataromaEntry {
   symbol: string;
   stock: string;
+  exchange?: string;
 }
 
 export interface MatchCandidate {
@@ -43,6 +44,8 @@ export interface DataromaScreenerSession {
   dataroma?: {
     entries: DataromaEntry[];
     source: string;
+    maxEntries?: number;
+    minPercent?: number;
   };
   providerUniverse?: {
     exchanges: CachedPayload<

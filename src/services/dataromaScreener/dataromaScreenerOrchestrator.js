@@ -18,6 +18,7 @@ class DataromaScreenerOrchestrator {
             useCache: cachePrefs.dataromaScrape ?? true,
             cacheToken: options?.cacheToken,
             minPercent: options?.minPercent,
+            maxEntries: options?.maxEntries,
         };
         steps.push(this.createStepState('scrape', 'running', { minPercent: scrapeOptions.minPercent ?? 0 }));
         await this.persistSession(session);
