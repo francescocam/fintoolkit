@@ -38,7 +38,7 @@ const path = __importStar(require("path"));
 const dataromaScraper_1 = require("../src/services/scraper/dataromaScraper");
 const fileCacheStore_1 = require("../src/services/cache/fileCacheStore");
 const eodhdProvider_1 = require("../src/providers/eodhdProvider");
-const fuseMatchEngine_1 = require("../src/services/matching/fuseMatchEngine");
+const advancedMatchEngine_1 = require("../src/services/matching/advancedMatchEngine");
 const dataromaScreenerOrchestrator_1 = require("../src/services/dataromaScreener/dataromaScreenerOrchestrator");
 const dataromaScreenerSessionStore_1 = require("../src/services/dataromaScreener/dataromaScreenerSessionStore");
 const httpClient_1 = require("../src/providers/httpClient");
@@ -59,7 +59,7 @@ const sessionStore = new dataromaScreenerSessionStore_1.DataromaScreenerFileSess
 const settingsStore = new fileSettingsStore_1.FileSettingsStore({
     filePath: path.join(__dirname, '..', '.config', 'settings.json'),
 });
-const matchEngine = new fuseMatchEngine_1.FuseMatchEngine();
+const matchEngine = new advancedMatchEngine_1.AdvancedMatchEngine();
 let orchestratorPromise = null;
 let latestSession = null;
 async function resolveApiToken() {
@@ -90,6 +90,7 @@ async function buildOrchestrator() {
         provider,
         matchEngine,
         store: sessionStore,
+        cache: dataromaCache, // Reusing dataromaCache for system matches
     });
 }
 async function getOrchestrator() {

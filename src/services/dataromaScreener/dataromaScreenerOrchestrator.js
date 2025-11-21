@@ -167,6 +167,18 @@ class DataromaScreenerOrchestrator {
         if (!session.providerUniverse) {
             throw new Error('Provider universe not available.');
         }
+        // Try to load from cache if available
+        if (this.config.cache) {
+            const cacheKey = `matches-${session.dataroma.entries.length}-${Object.keys(session.providerUniverse.symbols).length}-${options?.commonStock ? 'common' : 'all'}`;
+            const cached = await this.config.cache.read({
+                provider: 'system',
+                scope: 'matches',
+                key: cacheKey,
+            });
+            if (cached) {
+                return cached.payload;
+            }
+        }
         const allMatches = [];
         let unmatchedDataromaEntries = [...session.dataroma.entries];
         const workerPromises = [];
@@ -211,6 +223,15 @@ class DataromaScreenerOrchestrator {
                 reasons: ['No match found across all exchanges'],
             });
         });
+        // Save to cache
+        if (this.config.cache) {
+            const cacheKey = `matches-${session.dataroma.entries.length}-${Object.keys(session.providerUniverse.symbols).length}-${options?.commonStock ? 'common' : 'all'}`;
+            await this.config.cache.write({
+                provider: 'system',
+                scope: 'matches',
+                key: cacheKey,
+            }, allMatches);
+        }
         return allMatches;
     }
     async loadSession(id) {

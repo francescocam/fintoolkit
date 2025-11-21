@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { parentPort, workerData } from 'worker_threads';
-import { FuseMatchEngine } from './fuseMatchEngine';
+import { AdvancedMatchEngine } from './advancedMatchEngine';
 import { DataromaEntry, SymbolRecord } from '../../domain/contracts';
 
 if (!parentPort) {
@@ -12,7 +12,7 @@ const { unmatchedDataromaEntries, providerSymbols } = workerData as {
   providerSymbols: SymbolRecord[];
 };
 
-const matchEngine = new FuseMatchEngine();
+const matchEngine = new AdvancedMatchEngine();
 
 matchEngine.generateCandidates(unmatchedDataromaEntries, providerSymbols).then(matches => {
   parentPort?.postMessage(matches);

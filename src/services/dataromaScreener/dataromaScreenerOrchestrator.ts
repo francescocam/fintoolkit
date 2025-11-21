@@ -5,6 +5,7 @@ import * as path from 'path';
 import {
   CachedPayload,
   CachePreferences,
+  CacheStore,
   DataromaScraper,
   DataromaScreenerSession,
   DataromaScreenerSessionStore,
@@ -22,6 +23,7 @@ export interface DataromaScreenerOrchestratorConfig {
   matchEngine: MatchEngine;
   maxSymbolExchanges?: number;
   store?: DataromaScreenerSessionStore;
+  cache?: CacheStore;
 }
 
 export class DataromaScreenerOrchestrator {
@@ -180,6 +182,19 @@ export class DataromaScreenerOrchestrator {
       throw new Error('Provider universe not available.');
     }
 
+    // Try to load from cache if available
+    if (this.config.cache) {
+      const cacheKey = `matches-${session.dataroma.entries.length}-${Object.keys(session.providerUniverse.symbols).length}-${options?.commonStock ? 'common' : 'all'}`;
+      const cached = await this.config.cache.read<MatchCandidate[]>({
+        provider: 'system',
+        scope: 'matches',
+        key: cacheKey,
+      });
+      if (cached) {
+        return cached.payload;
+      }
+    }
+
     const allMatches: MatchCandidate[] = [];
     let unmatchedDataromaEntries = [...session.dataroma.entries];
 
@@ -233,6 +248,16 @@ export class DataromaScreenerOrchestrator {
         reasons: ['No match found across all exchanges'],
       });
     });
+
+    // Save to cache
+    if (this.config.cache) {
+      const cacheKey = `matches-${session.dataroma.entries.length}-${Object.keys(session.providerUniverse.symbols).length}-${options?.commonStock ? 'common' : 'all'}`;
+      await this.config.cache.write({
+        provider: 'system',
+        scope: 'matches',
+        key: cacheKey,
+      }, allMatches);
+    }
 
     return allMatches;
   }

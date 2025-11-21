@@ -7,7 +7,7 @@ export interface ProviderKey {
 }
 
 export interface CacheDescriptor {
-  scope: 'scrape' | 'exchange-list' | 'exchange-symbols' | 'fundamentals';
+  scope: 'scrape' | 'exchange-list' | 'exchange-symbols' | 'fundamentals' | 'matches';
   provider: ProviderId;
   key: string;
   expiresAt?: Date;

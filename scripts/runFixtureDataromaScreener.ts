@@ -5,7 +5,7 @@ import { InMemoryCacheStore } from '../src/services/cache/inMemoryCacheStore';
 import { DataromaScreenerOrchestrator } from '../src/services/dataromaScreener/dataromaScreenerOrchestrator';
 import { DataromaScreenerFileSessionStore } from '../src/services/dataromaScreener/dataromaScreenerSessionStore';
 import { EodhdProvider } from '../src/providers/eodhdProvider';
-import { FuseMatchEngine } from '../src/services/matching/fuseMatchEngine';
+import { AdvancedMatchEngine } from '../src/services/matching/advancedMatchEngine';
 
 async function main(): Promise<void> {
   const fixturesRoot = path.join(__dirname, '..', 'fixtures');
@@ -37,13 +37,14 @@ async function main(): Promise<void> {
     baseDir: path.join(__dirname, '..', '.dataroma-screener-sessions'),
   });
 
-  const matchEngine = new FuseMatchEngine();
+  const matchEngine = new AdvancedMatchEngine();
 
   const screener = new DataromaScreenerOrchestrator({
     scraper,
     provider,
     matchEngine,
     store: sessionStore,
+    cache: new InMemoryCacheStore(),
   });
   const session = await screener.startSession({
     cache: {
