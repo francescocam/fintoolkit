@@ -1,4 +1,7 @@
+/// <reference types="node" />
 import { randomUUID } from 'crypto';
+import { Worker } from 'worker_threads';
+import * as path from 'path';
 import {
   CachedPayload,
   CachePreferences,
@@ -172,29 +175,46 @@ export class DataromaScreenerOrchestrator {
     if (!session.providerUniverse) {
       throw new Error('Provider universe not available.');
     }
-
-    let unmatchedDataromaEntries = [...session.dataroma.entries];
+  
     const allMatches: MatchCandidate[] = [];
-
+    let unmatchedDataromaEntries = [...session.dataroma.entries];
+  
+    const workerPromises: Promise<MatchCandidate[]>[] = [];
+  
     for (const exchangeCode in session.providerUniverse.symbols) {
-      if (unmatchedDataromaEntries.length === 0) {
-        break; // All entries have been matched
-      }
-      
       const providerSymbols = session.providerUniverse.symbols[exchangeCode].payload;
       if (providerSymbols.length === 0) {
         continue;
       }
-
-      const matches = await this.config.matchEngine.generateCandidates(unmatchedDataromaEntries, providerSymbols);
-      
-      const newMatches = matches.filter(match => match.providerSymbol);
-      allMatches.push(...newMatches);
-      
-      const matchedDataromaSymbols = new Set(newMatches.map(match => match.dataromaSymbol));
-      unmatchedDataromaEntries = unmatchedDataromaEntries.filter(entry => !matchedDataromaSymbols.has(entry.symbol));
+  
+      const workerPromise = new Promise<MatchCandidate[]>((resolve, reject) => {
+        const worker = new Worker(path.resolve(__dirname, '../matching/matchingWorker.js'), {
+          workerData: {
+            unmatchedDataromaEntries: unmatchedDataromaEntries,
+            providerSymbols: providerSymbols,
+          },
+        });
+  
+        worker.on('message', resolve);
+        worker.on('error', reject);
+        worker.on('exit', (code: number) => {
+          if (code !== 0) {
+            reject(new Error(`Worker stopped with exit code ${code}`));
+          }
+        });
+      });
+      workerPromises.push(workerPromise);
     }
-
+  
+    const results = await Promise.all(workerPromises);
+    const matches = results.flat();
+  
+    const newMatches = matches.filter(match => match.providerSymbol);
+    allMatches.push(...newMatches);
+  
+    const matchedDataromaSymbols = new Set(newMatches.map(match => match.dataromaSymbol));
+    unmatchedDataromaEntries = unmatchedDataromaEntries.filter(entry => !matchedDataromaSymbols.has(entry.symbol));
+  
     // Add any remaining unmatched entries to the list
     unmatchedDataromaEntries.forEach(entry => {
       allMatches.push({
@@ -205,7 +225,7 @@ export class DataromaScreenerOrchestrator {
         reasons: ['No match found across all exchanges'],
       });
     });
-
+  
     return allMatches;
   }
 
