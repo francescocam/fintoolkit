@@ -15,7 +15,7 @@ const DataromaScreenerPage = () => {
   } = useCachePreference('dataromaScrape');
   const [maxEntries, setMaxEntries] = useState('0');
 
-  const dataromaRows = session?.dataroma?.entries ?? [];
+  const dataromaRows = (session?.dataroma?.entries ?? []).slice(0, 30);
 
   return (
     <section className="dataroma-screener-page">

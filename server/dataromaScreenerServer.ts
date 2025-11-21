@@ -230,10 +230,11 @@ async function handleMatchGeneration(
   });
   req.on('end', async () => {
     try {
-      const payload = body ? (JSON.parse(body) as { commonStock?: boolean }) : {};
+      const payload = body ? (JSON.parse(body) as { commonStock?: boolean; useCache?: boolean }) : {};
       const screener = await getOrchestrator();
       latestSession = await screener.runMatchStep(sessionId, {
         commonStock: payload.commonStock,
+        useCache: payload.useCache,
       });
       sendJson(res, 200, latestSession);
     } catch (error) {

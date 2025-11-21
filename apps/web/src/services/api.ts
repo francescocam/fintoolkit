@@ -67,6 +67,7 @@ export async function runUniverseStep(
 
 export interface MatchStepOptions {
   commonStock?: boolean;
+  useCache?: boolean;
 }
 
 export async function runMatchStep(

@@ -231,6 +231,7 @@ async function handleMatchGeneration(req, res, sessionId) {
             const screener = await getOrchestrator();
             latestSession = await screener.runMatchStep(sessionId, {
                 commonStock: payload.commonStock,
+                useCache: payload.useCache,
             });
             sendJson(res, 200, latestSession);
         }

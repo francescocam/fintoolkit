@@ -18,6 +18,7 @@ const DataromaMatchesPage = () => {
   const [rowUpdates, setRowUpdates] = useState<Record<string, boolean>>({});
   const [actionError, setActionError] = useState<string | null>(null);
   const [commonStockOnly, setCommonStockOnly] = useState(true);
+  const [useCache, setUseCache] = useState(true);
 
   const matches = useMemo(() => {
     if (!session?.matches) {
@@ -87,10 +88,12 @@ const DataromaMatchesPage = () => {
         <h2>Dataroma Screener</h2>
         <p>Step 3 - Match Suggestions</p>
         <div className="dataroma-screener-actions">
+
+
           <button
             type="button"
             className="pill-button"
-            onClick={() => void generateMatches({ commonStock: commonStockOnly })}
+            onClick={() => void generateMatches({ commonStock: commonStockOnly, useCache })}
             disabled={matching || !session?.providerUniverse}
           >
             {matching ? 'Generating...' : 'Get Matches'}
@@ -102,6 +105,15 @@ const DataromaMatchesPage = () => {
             disabled={matching}
           >
             <span className="toggle-pill-label">Common Stock Only</span>
+            <span className="toggle-indicator" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={`toggle-pill${useCache ? ' active' : ''}`}
+            onClick={() => setUseCache(!useCache)}
+            disabled={matching}
+          >
+            <span className="toggle-pill-label">Reuse cached matches</span>
             <span className="toggle-indicator" aria-hidden="true" />
           </button>
         </div>

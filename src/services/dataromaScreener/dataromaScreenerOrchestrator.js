@@ -168,7 +168,7 @@ class DataromaScreenerOrchestrator {
             throw new Error('Provider universe not available.');
         }
         // Try to load from cache if available
-        if (this.config.cache) {
+        if (this.config.cache && options?.useCache !== false) {
             const cacheKey = `matches-${session.dataroma.entries.length}-${Object.keys(session.providerUniverse.symbols).length}-${options?.commonStock ? 'common' : 'all'}`;
             const cached = await this.config.cache.read({
                 provider: 'system',

@@ -77,7 +77,7 @@ const useProvideSession = (options?: UseDataromaScreenerSessionOptions) => {
   );
 
   const generateMatches = useCallback(
-    async (options?: { commonStock?: boolean }) => {
+    async (options?: { commonStock?: boolean; useCache?: boolean }) => {
       if (!session?.id) {
         setError('No active session. Run previous steps first.');
         return;
