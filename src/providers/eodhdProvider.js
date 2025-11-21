@@ -19,12 +19,17 @@ class EodhdProvider {
     }
     async getSymbols(exchangeCode, options) {
         const normalizedCode = exchangeCode.trim().toUpperCase();
-        const descriptor = this.createDescriptor('exchange-symbols', normalizedCode, this.config.symbolTtlMs);
+        const cacheKey = options?.commonStock ? `${normalizedCode}:common` : normalizedCode;
+        const descriptor = this.createDescriptor('exchange-symbols', cacheKey, this.config.symbolTtlMs);
         const cached = await this.readCache(descriptor, options);
         if (cached) {
             return cached;
         }
-        const payload = await this.config.client.getJson(`${this.baseUrl}/exchange-symbol-list/${normalizedCode}`, this.authParams());
+        const queryParams = this.authParams();
+        if (options?.commonStock) {
+            queryParams.type = 'common_stock';
+        }
+        const payload = await this.config.client.getJson(`${this.baseUrl}/exchange-symbol-list/${normalizedCode}`, queryParams);
         const normalizedSymbols = payload.map((record) => this.normalizeSymbol(record));
         return this.persist(descriptor, normalizedSymbols);
     }

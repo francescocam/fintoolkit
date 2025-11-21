@@ -83,7 +83,7 @@ class DataromaScreenerOrchestrator {
         const step = this.getOrCreateStepState(session, 'universe');
         await this.persistSession(session);
         try {
-            const universe = await this.buildUniverse(options?.useCache ?? true);
+            const universe = await this.buildUniverse(options?.useCache ?? true, options?.commonStock);
             session.providerUniverse = universe;
             this.updateStepState(step, 'complete', {
                 exchanges: universe.exchanges.payload.length,
@@ -148,12 +148,12 @@ class DataromaScreenerOrchestrator {
         session.steps.push(created);
         return created;
     }
-    async buildUniverse(useCache) {
+    async buildUniverse(useCache, commonStock) {
         const exchanges = await this.config.provider.getExchanges({ useCache });
         const symbols = {};
         const selected = exchanges.payload.slice(0, this.config.maxSymbolExchanges ?? exchanges.payload.length);
         for (const entry of selected) {
-            symbols[entry.code] = await this.config.provider.getSymbols(entry.code, { useCache });
+            symbols[entry.code] = await this.config.provider.getSymbols(entry.code, { useCache, commonStock });
         }
         return {
             exchanges,

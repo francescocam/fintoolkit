@@ -210,6 +210,7 @@ async function handleUniverseStep(req, res, sessionId) {
             const cachePrefs = await resolveCachePreferences(overrides);
             latestSession = await screener.runUniverseStep(sessionId, {
                 useCache: cachePrefs.stockUniverse,
+                commonStock: payload.commonStock,
             });
             sendJson(res, 200, latestSession);
         }

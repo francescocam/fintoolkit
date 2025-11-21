@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDataromaScreenerSession } from '../hooks/useDataromaScreenerSession';
 import { useCachePreference } from '../hooks/useCachePreference';
@@ -13,6 +13,8 @@ const DataromaUniversePage = () => {
     error: prefError,
     setUseCache,
   } = useCachePreference('stockUniverse');
+
+  const [commonStockOnly, setCommonStockOnly] = useState(true);
 
   const universeRows = useMemo(() => {
     if (!session?.providerUniverse) {
@@ -32,10 +34,19 @@ const DataromaUniversePage = () => {
           <button
             type="button"
             className="pill-button"
-            onClick={() => void buildUniverse({ cache: { stockUniverse: useCache } })}
+            onClick={() => void buildUniverse({ cache: { stockUniverse: useCache }, commonStock: commonStockOnly })}
             disabled={universeLoading || prefLoading || !session?.dataroma}
           >
             {universeLoading ? 'Fetching...' : 'Get Data'}
+          </button>
+          <button
+            type="button"
+            className={`toggle-pill${commonStockOnly ? ' active' : ''}`}
+            onClick={() => setCommonStockOnly(!commonStockOnly)}
+            disabled={universeLoading}
+          >
+            <span className="toggle-pill-label">Common Stock Only</span>
+            <span className="toggle-indicator" aria-hidden="true" />
           </button>
           <button
             type="button"

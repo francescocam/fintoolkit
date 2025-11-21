@@ -25,7 +25,7 @@ export interface DataromaScreenerOrchestratorConfig {
 }
 
 export class DataromaScreenerOrchestrator {
-  constructor(private readonly config: DataromaScreenerOrchestratorConfig) {}
+  constructor(private readonly config: DataromaScreenerOrchestratorConfig) { }
 
   async startSession(options?: DataromaScreenerRunOptions): Promise<DataromaScreenerSession> {
     const steps: DataromaScreenerStepState[] = [];
@@ -77,7 +77,7 @@ export class DataromaScreenerOrchestrator {
     await this.persistSession(session);
 
     try {
-      const universe = await this.buildUniverse(options?.useCache ?? true);
+      const universe = await this.buildUniverse(options?.useCache ?? true, options?.commonStock);
       session.providerUniverse = universe;
       this.updateStepState(step, 'complete', {
         exchanges: universe.exchanges.payload.length,
@@ -153,13 +153,14 @@ export class DataromaScreenerOrchestrator {
 
   private async buildUniverse(
     useCache: boolean,
+    commonStock?: boolean,
   ): Promise<NonNullable<DataromaScreenerSession['providerUniverse']>> {
     const exchanges = await this.config.provider.getExchanges({ useCache });
     const symbols: Record<string, CachedPayload<SymbolRecord[]>> = {};
 
     const selected = exchanges.payload.slice(0, this.config.maxSymbolExchanges ?? exchanges.payload.length);
     for (const entry of selected) {
-      symbols[entry.code] = await this.config.provider.getSymbols(entry.code, { useCache });
+      symbols[entry.code] = await this.config.provider.getSymbols(entry.code, { useCache, commonStock });
     }
 
     return {
@@ -175,18 +176,18 @@ export class DataromaScreenerOrchestrator {
     if (!session.providerUniverse) {
       throw new Error('Provider universe not available.');
     }
-  
+
     const allMatches: MatchCandidate[] = [];
     let unmatchedDataromaEntries = [...session.dataroma.entries];
-  
+
     const workerPromises: Promise<MatchCandidate[]>[] = [];
-  
+
     for (const exchangeCode in session.providerUniverse.symbols) {
       const providerSymbols = session.providerUniverse.symbols[exchangeCode].payload;
       if (providerSymbols.length === 0) {
         continue;
       }
-  
+
       const workerPromise = new Promise<MatchCandidate[]>((resolve, reject) => {
         const worker = new Worker(path.resolve(__dirname, '../matching/matchingWorker.js'), {
           workerData: {
@@ -194,7 +195,7 @@ export class DataromaScreenerOrchestrator {
             providerSymbols: providerSymbols,
           },
         });
-  
+
         worker.on('message', resolve);
         worker.on('error', reject);
         worker.on('exit', (code: number) => {
@@ -205,16 +206,16 @@ export class DataromaScreenerOrchestrator {
       });
       workerPromises.push(workerPromise);
     }
-  
+
     const results = await Promise.all(workerPromises);
     const matches = results.flat();
-  
+
     const newMatches = matches.filter(match => match.providerSymbol);
     allMatches.push(...newMatches);
-  
+
     const matchedDataromaSymbols = new Set(newMatches.map(match => match.dataromaSymbol));
     unmatchedDataromaEntries = unmatchedDataromaEntries.filter(entry => !matchedDataromaSymbols.has(entry.symbol));
-  
+
     // Add any remaining unmatched entries to the list
     unmatchedDataromaEntries.forEach(entry => {
       allMatches.push({
@@ -225,7 +226,7 @@ export class DataromaScreenerOrchestrator {
         reasons: ['No match found across all exchanges'],
       });
     });
-  
+
     return allMatches;
   }
 
@@ -269,4 +270,5 @@ export interface DataromaScreenerRunOptions {
 
 export interface UniverseStepRunOptions {
   useCache?: boolean;
+  commonStock?: boolean;
 }

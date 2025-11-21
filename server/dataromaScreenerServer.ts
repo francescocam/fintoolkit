@@ -209,6 +209,7 @@ async function handleUniverseStep(req: IncomingMessage, res: ServerResponse, ses
       const cachePrefs = await resolveCachePreferences(overrides);
       latestSession = await screener.runUniverseStep(sessionId, {
         useCache: cachePrefs.stockUniverse,
+        commonStock: payload.commonStock,
       });
       sendJson(res, 200, latestSession);
     } catch (error) {
@@ -410,7 +411,7 @@ interface StartSessionPayload {
   maxEntries?: number;
 }
 
-type StepPayload = Pick<StartSessionPayload, 'cache' | 'useCache'>;
+type StepPayload = Pick<StartSessionPayload, 'cache' | 'useCache'> & { commonStock?: boolean };
 
 interface UpdateMatchPayload {
   dataromaSymbol: string;

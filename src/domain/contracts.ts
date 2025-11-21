@@ -87,6 +87,7 @@ export interface FundamentalsSnapshot {
 
 export interface ProviderCacheOptions {
   useCache?: boolean;
+  commonStock?: boolean;
 }
 
 export interface FundamentalsProvider {

@@ -48,6 +48,7 @@ export async function startNewSession(options?: StartSessionOptions): Promise<Da
 
 export interface UniverseStepOptions {
   cache?: Partial<Record<CachePreferenceKey, boolean>>;
+  commonStock?: boolean;
 }
 
 export async function runUniverseStep(
