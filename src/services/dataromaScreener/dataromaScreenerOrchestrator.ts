@@ -173,11 +173,40 @@ export class DataromaScreenerOrchestrator {
       throw new Error('Provider universe not available.');
     }
 
-    const providerSymbols = Object.values(session.providerUniverse.symbols).flatMap(
-      (payload) => payload.payload,
-    );
+    let unmatchedDataromaEntries = [...session.dataroma.entries];
+    const allMatches: MatchCandidate[] = [];
 
-    return this.config.matchEngine.generateCandidates(session.dataroma.entries, providerSymbols);
+    for (const exchangeCode in session.providerUniverse.symbols) {
+      if (unmatchedDataromaEntries.length === 0) {
+        break; // All entries have been matched
+      }
+      
+      const providerSymbols = session.providerUniverse.symbols[exchangeCode].payload;
+      if (providerSymbols.length === 0) {
+        continue;
+      }
+
+      const matches = await this.config.matchEngine.generateCandidates(unmatchedDataromaEntries, providerSymbols);
+      
+      const newMatches = matches.filter(match => match.providerSymbol);
+      allMatches.push(...newMatches);
+      
+      const matchedDataromaSymbols = new Set(newMatches.map(match => match.dataromaSymbol));
+      unmatchedDataromaEntries = unmatchedDataromaEntries.filter(entry => !matchedDataromaSymbols.has(entry.symbol));
+    }
+
+    // Add any remaining unmatched entries to the list
+    unmatchedDataromaEntries.forEach(entry => {
+      allMatches.push({
+        dataromaSymbol: entry.symbol,
+        dataromaName: entry.stock,
+        providerSymbol: undefined,
+        confidence: 0,
+        reasons: ['No match found across all exchanges'],
+      });
+    });
+
+    return allMatches;
   }
 
   async loadSession(id: string): Promise<DataromaScreenerSession | null> {
