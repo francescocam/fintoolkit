@@ -40,7 +40,7 @@ const inMemoryCacheStore_1 = require("../src/services/cache/inMemoryCacheStore")
 const dataromaScreenerOrchestrator_1 = require("../src/services/dataromaScreener/dataromaScreenerOrchestrator");
 const dataromaScreenerSessionStore_1 = require("../src/services/dataromaScreener/dataromaScreenerSessionStore");
 const eodhdProvider_1 = require("../src/providers/eodhdProvider");
-const basicMatchEngine_1 = require("../src/services/matching/basicMatchEngine");
+const fuseMatchEngine_1 = require("../src/services/matching/fuseMatchEngine");
 async function main() {
     const fixturesRoot = path.join(__dirname, '..', 'fixtures');
     const dataromaFixture = path.join(fixturesRoot, 'dataroma', 'grand-portfolio.html');
@@ -66,7 +66,7 @@ async function main() {
     const sessionStore = new dataromaScreenerSessionStore_1.DataromaScreenerFileSessionStore({
         baseDir: path.join(__dirname, '..', '.dataroma-screener-sessions'),
     });
-    const matchEngine = new basicMatchEngine_1.BasicMatchEngine();
+    const matchEngine = new fuseMatchEngine_1.FuseMatchEngine();
     const screener = new dataromaScreenerOrchestrator_1.DataromaScreenerOrchestrator({
         scraper,
         provider,

@@ -3,7 +3,7 @@ import * as path from 'path';
 import { DataromaScraperService } from '../src/services/scraper/dataromaScraper';
 import { FileCacheStore } from '../src/services/cache/fileCacheStore';
 import { EodhdProvider } from '../src/providers/eodhdProvider';
-import { BasicMatchEngine } from '../src/services/matching/basicMatchEngine';
+import { FuseMatchEngine } from '../src/services/matching/fuseMatchEngine';
 import { DataromaScreenerOrchestrator } from '../src/services/dataromaScreener/dataromaScreenerOrchestrator';
 import { DataromaScreenerFileSessionStore } from '../src/services/dataromaScreener/dataromaScreenerSessionStore';
 import { DataromaScreenerSession, AppSettings, SymbolRecord } from '../src/domain/contracts';
@@ -29,7 +29,7 @@ const sessionStore = new DataromaScreenerFileSessionStore({
 const settingsStore = new FileSettingsStore({
   filePath: path.join(__dirname, '..', '.config', 'settings.json'),
 });
-const matchEngine = new BasicMatchEngine();
+const matchEngine = new FuseMatchEngine();
 
 let orchestratorPromise: Promise<DataromaScreenerOrchestrator> | null = null;
 

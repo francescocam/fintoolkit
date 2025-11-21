@@ -4,7 +4,7 @@ export { FetchHttpClient } from './providers/httpClient';
 export { InMemoryCacheStore } from './services/cache/inMemoryCacheStore';
 export { FileCacheStore, FileCacheStoreOptions } from './services/cache/fileCacheStore';
 export { DataromaScraperService, DataromaScraperConfig } from './services/scraper/dataromaScraper';
-export { BasicMatchEngine } from './services/matching/basicMatchEngine';
+export { FuseMatchEngine } from './services/matching/fuseMatchEngine';
 export { LocalFixtureHttpClient } from './providers/localFixtureHttpClient';
 export {
   DataromaScreenerOrchestrator,
