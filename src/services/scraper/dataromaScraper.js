@@ -46,7 +46,7 @@ class DataromaScraperService {
     buildCacheKey(opts) {
         const min = opts.minPercent ?? 0;
         const max = opts.maxEntries ?? 'all';
-        return `grand-portfolio:v2:${min}:max-${max}`;
+        return `grand-portfolio_v2_${min}_max-${max}`;
     }
     buildQuery(opts, page) {
         const params = {};

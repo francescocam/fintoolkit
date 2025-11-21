@@ -219,15 +219,24 @@ async function handleUniverseStep(req, res, sessionId) {
         }
     });
 }
-async function handleMatchGeneration(res, sessionId) {
-    try {
-        const screener = await getOrchestrator();
-        latestSession = await screener.runMatchStep(sessionId);
-        sendJson(res, 200, latestSession);
-    }
-    catch (error) {
-        sendJson(res, 500, { error: error.message });
-    }
+async function handleMatchGeneration(req, res, sessionId) {
+    let body = '';
+    req.on('data', (chunk) => {
+        body += chunk;
+    });
+    req.on('end', async () => {
+        try {
+            const payload = body ? JSON.parse(body) : {};
+            const screener = await getOrchestrator();
+            latestSession = await screener.runMatchStep(sessionId, {
+                commonStock: payload.commonStock,
+            });
+            sendJson(res, 200, latestSession);
+        }
+        catch (error) {
+            sendJson(res, 500, { error: error.message });
+        }
+    });
 }
 async function handleCreateSession(req, res) {
     let body = '';
@@ -374,7 +383,7 @@ async function handleMatchUpdate(req, res) {
             return;
         }
         if (req.method === 'POST' && segments.length === 5 && subresource === 'matches') {
-            await handleMatchGeneration(res, id);
+            await handleMatchGeneration(req, res, id);
             return;
         }
     }

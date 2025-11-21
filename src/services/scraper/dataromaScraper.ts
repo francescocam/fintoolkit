@@ -70,7 +70,7 @@ export class DataromaScraperService implements DataromaScraper {
   private buildCacheKey(opts: ScrapeOptions): string {
     const min = opts.minPercent ?? 0;
     const max = opts.maxEntries ?? 'all';
-    return `grand-portfolio:v2:${min}:max-${max}`;
+    return `grand-portfolio_v2_${min}_max-${max}`;
   }
 
   private buildQuery(opts: ScrapeOptions, page?: number): QueryParams | undefined {

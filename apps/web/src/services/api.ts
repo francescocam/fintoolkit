@@ -65,9 +65,20 @@ export async function runUniverseStep(
   return handleResponse<DataromaScreenerSession>(response);
 }
 
-export async function runMatchStep(sessionId: string): Promise<DataromaScreenerSession> {
+export interface MatchStepOptions {
+  commonStock?: boolean;
+}
+
+export async function runMatchStep(
+  sessionId: string,
+  options?: MatchStepOptions,
+): Promise<DataromaScreenerSession> {
   const response = await fetch(`${API_BASE}/dataroma-screener/session/${sessionId}/matches`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(options ?? {}),
   });
   return handleResponse<DataromaScreenerSession>(response);
 }

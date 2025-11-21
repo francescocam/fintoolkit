@@ -13,7 +13,7 @@ const DataromaScreenerPage = () => {
     error: prefError,
     setUseCache,
   } = useCachePreference('dataromaScrape');
-  const [maxEntries, setMaxEntries] = useState('20');
+  const [maxEntries, setMaxEntries] = useState('0');
 
   const dataromaRows = session?.dataroma?.entries ?? [];
 

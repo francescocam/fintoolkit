@@ -95,7 +95,7 @@ export class DataromaScreenerOrchestrator {
     return session;
   }
 
-  async runMatchStep(sessionId: string): Promise<DataromaScreenerSession> {
+  async runMatchStep(sessionId: string, options?: MatchStepRunOptions): Promise<DataromaScreenerSession> {
     const session = await this.loadSessionOrThrow(sessionId);
     if (!session.dataroma) {
       throw new Error('Dataroma scrape not completed. Run step 1 first.');
@@ -108,7 +108,7 @@ export class DataromaScreenerOrchestrator {
     await this.persistSession(session);
 
     try {
-      const matches = await this.generateMatches(session);
+      const matches = await this.generateMatches(session, options);
       session.matches = matches;
       this.updateStepState(step, 'complete', {
         matches: matches.length,
@@ -169,7 +169,10 @@ export class DataromaScreenerOrchestrator {
     };
   }
 
-  private async generateMatches(session: DataromaScreenerSession): Promise<MatchCandidate[]> {
+  private async generateMatches(
+    session: DataromaScreenerSession,
+    options?: MatchStepRunOptions,
+  ): Promise<MatchCandidate[]> {
     if (!session.dataroma) {
       throw new Error('Dataroma scrape not completed.');
     }
@@ -183,7 +186,11 @@ export class DataromaScreenerOrchestrator {
     const workerPromises: Promise<MatchCandidate[]>[] = [];
 
     for (const exchangeCode in session.providerUniverse.symbols) {
-      const providerSymbols = session.providerUniverse.symbols[exchangeCode].payload;
+      let providerSymbols = session.providerUniverse.symbols[exchangeCode].payload;
+      if (options?.commonStock) {
+        providerSymbols = providerSymbols.filter((s) => s.type === 'Common Stock');
+      }
+
       if (providerSymbols.length === 0) {
         continue;
       }
@@ -270,5 +277,9 @@ export interface DataromaScreenerRunOptions {
 
 export interface UniverseStepRunOptions {
   useCache?: boolean;
+  commonStock?: boolean;
+}
+
+export interface MatchStepRunOptions {
   commonStock?: boolean;
 }

@@ -76,22 +76,25 @@ const useProvideSession = (options?: UseDataromaScreenerSessionOptions) => {
     [session?.id],
   );
 
-  const generateMatches = useCallback(async () => {
-    if (!session?.id) {
-      setError('No active session. Run previous steps first.');
-      return;
-    }
-    setRunningStep('match');
-    setError(null);
-    try {
-      const result = await runMatchStep(session.id);
-      setSession(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to generate matches');
-    } finally {
-      setRunningStep(null);
-    }
-  }, [session?.id]);
+  const generateMatches = useCallback(
+    async (options?: { commonStock?: boolean }) => {
+      if (!session?.id) {
+        setError('No active session. Run previous steps first.');
+        return;
+      }
+      setRunningStep('match');
+      setError(null);
+      try {
+        const result = await runMatchStep(session.id, options);
+        setSession(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unable to generate matches');
+      } finally {
+        setRunningStep(null);
+      }
+    },
+    [session?.id],
+  );
 
   useEffect(() => {
     if (!autoLoad) {

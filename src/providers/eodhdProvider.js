@@ -19,7 +19,7 @@ class EodhdProvider {
     }
     async getSymbols(exchangeCode, options) {
         const normalizedCode = exchangeCode.trim().toUpperCase();
-        const cacheKey = options?.commonStock ? `${normalizedCode}:common` : normalizedCode;
+        const cacheKey = options?.commonStock ? `${normalizedCode}_common` : normalizedCode;
         const descriptor = this.createDescriptor('exchange-symbols', cacheKey, this.config.symbolTtlMs);
         const cached = await this.readCache(descriptor, options);
         if (cached) {
@@ -136,6 +136,7 @@ class EodhdProvider {
             country: record.Country ?? '',
             currency: record.Currency ?? '',
             isin: record.Isin ?? null,
+            type: record.Type,
         };
     }
 }

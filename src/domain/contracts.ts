@@ -71,6 +71,7 @@ export interface SymbolRecord {
   country: string;
   currency: string;
   isin?: string | null;
+  type?: string;
 }
 
 export interface FundamentalsSnapshot {

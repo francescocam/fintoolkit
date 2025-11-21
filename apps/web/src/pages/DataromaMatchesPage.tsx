@@ -17,6 +17,7 @@ const DataromaMatchesPage = () => {
   const { session, loading, error, matching, generateMatches, mutateSession } = useDataromaScreenerSession();
   const [rowUpdates, setRowUpdates] = useState<Record<string, boolean>>({});
   const [actionError, setActionError] = useState<string | null>(null);
+  const [commonStockOnly, setCommonStockOnly] = useState(true);
 
   const matches = useMemo(() => {
     if (!session?.matches) {
@@ -89,10 +90,19 @@ const DataromaMatchesPage = () => {
           <button
             type="button"
             className="pill-button"
-            onClick={() => void generateMatches()}
+            onClick={() => void generateMatches({ commonStock: commonStockOnly })}
             disabled={matching || !session?.providerUniverse}
           >
             {matching ? 'Generating...' : 'Get Matches'}
+          </button>
+          <button
+            type="button"
+            className={`toggle-pill${commonStockOnly ? ' active' : ''}`}
+            onClick={() => setCommonStockOnly(!commonStockOnly)}
+            disabled={matching}
+          >
+            <span className="toggle-pill-label">Common Stock Only</span>
+            <span className="toggle-indicator" aria-hidden="true" />
           </button>
         </div>
       </header>

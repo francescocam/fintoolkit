@@ -35,6 +35,7 @@ interface RawSymbolRecord {
   Country?: string;
   Currency?: string;
   Isin?: string | null;
+  Type?: string;
 }
 
 interface EodhdFundamentalsResponse {
@@ -87,7 +88,7 @@ export class EodhdProvider implements FundamentalsProvider {
 
   async getSymbols(exchangeCode: string, options?: ProviderCacheOptions): Promise<CachedPayload<SymbolRecord[]>> {
     const normalizedCode = exchangeCode.trim().toUpperCase();
-    const cacheKey = options?.commonStock ? `${normalizedCode}:common` : normalizedCode;
+    const cacheKey = options?.commonStock ? `${normalizedCode}_common` : normalizedCode;
     const descriptor = this.createDescriptor('exchange-symbols', cacheKey, this.config.symbolTtlMs);
     const cached = await this.readCache<SymbolRecord[]>(descriptor, options);
     if (cached) {
@@ -251,6 +252,7 @@ export class EodhdProvider implements FundamentalsProvider {
       country: record.Country ?? '',
       currency: record.Currency ?? '',
       isin: record.Isin ?? null,
+      type: record.Type,
     };
   }
 }

@@ -218,14 +218,27 @@ async function handleUniverseStep(req: IncomingMessage, res: ServerResponse, ses
   });
 }
 
-async function handleMatchGeneration(res: ServerResponse, sessionId: string): Promise<void> {
-  try {
-    const screener = await getOrchestrator();
-    latestSession = await screener.runMatchStep(sessionId);
-    sendJson(res, 200, latestSession);
-  } catch (error) {
-    sendJson(res, 500, { error: (error as Error).message });
-  }
+async function handleMatchGeneration(
+  req: IncomingMessage,
+  res: ServerResponse,
+  sessionId: string,
+): Promise<void> {
+  let body = '';
+  req.on('data', (chunk) => {
+    body += chunk;
+  });
+  req.on('end', async () => {
+    try {
+      const payload = body ? (JSON.parse(body) as { commonStock?: boolean }) : {};
+      const screener = await getOrchestrator();
+      latestSession = await screener.runMatchStep(sessionId, {
+        commonStock: payload.commonStock,
+      });
+      sendJson(res, 200, latestSession);
+    } catch (error) {
+      sendJson(res, 500, { error: (error as Error).message });
+    }
+  });
 }
 
 async function handleCreateSession(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -388,7 +401,7 @@ createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && segments.length === 5 && subresource === 'matches') {
-      await handleMatchGeneration(res, id);
+      await handleMatchGeneration(req, res, id);
       return;
     }
   }
