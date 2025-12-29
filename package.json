@@ -8,7 +8,8 @@
     "build": "vite build --config apps/web/vite.config.ts",
     "preview": "vite preview --config apps/web/vite.config.ts",
     "typecheck": "tsc -p tsconfig.json && tsc -p apps/web/tsconfig.json",
-    "dataroma-screener:server": "ts-node server/dataromaScreenerServer.ts"
+    "dataroma-screener:server": ".venv/bin/uvicorn backend.app.main:app --port 8787 --reload --host 0.0.0.0",
+    "dataroma-screener:server:node": "ts-node server/dataromaScreenerServer.ts"
   },
   "devDependencies": {
     "@eslint/css": "^0.14.1",
